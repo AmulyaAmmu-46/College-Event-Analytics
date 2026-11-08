@@ -190,3 +190,4 @@ College Event Analytics/
 ├── seed.py                        # Automated database seed script
 └── README.md                      # Comprehensive user & execution manual
 ```
+# College-Event-Analytics
