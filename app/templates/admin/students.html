@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+{% block title %}Student Accounts Management - College Event Analytics{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+  <div>
+    <span class="eyebrow">USER ADMINISTRATION</span>
+    <h1 class="h2">Student Accounts Management</h1>
+    <p>Manage student profiles, verify USN credentials, review departmental enrollments, and toggle account activation status.</p>
+  </div>
+</div>
+
+<!-- Department Distribution Summary -->
+<div class="row g-2 mb-4">
+  {% for dept in departments %}
+  <div class="col-lg-4 col-md-6">
+    <div class="p-3 bg-white rounded-3 border shadow-sm d-flex justify-content-between align-items-center">
+      <div>
+        <span class="badge bg-primary-subtle text-primary fw-bold">{{ dept.code }}</span>
+        <div class="small fw-semibold text-dark mt-1">{{ dept.name }}</div>
+      </div>
+      <div class="text-end">
+        <span class="fs-4 fw-bold text-dark">{{ dept_counts.get(dept.id, 0) }}</span>
+        <div class="small text-muted">Students</div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Search and Filters -->
+<div class="filter-panel rounded-4 border mb-4">
+  <form method="get" action="{{ url_for('admin.students') }}" class="row g-3 align-items-end">
+    <div class="col-md-5">
+      <label class="form-label" for="searchStudent">Search by Name, USN, or Email</label>
+      <div class="input-group">
+        <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+        <input type="text" class="form-control" id="searchStudent" name="q" placeholder="e.g. Aarav, 1MS21AI001, student@college.edu" value="{{ search_query or '' }}">
+      </div>
+    </div>
+
+    <div class="col-md-5">
+      <label class="form-label" for="filterDept">Filter by Academic Department</label>
+      <select class="form-select" id="filterDept" name="department_id">
+        <option value="">All 9 Departments</option>
+        {% for dept in departments %}
+        <option value="{{ dept.id }}" {% if selected_dept == dept.id %}selected{% endif %}>
+          {{ dept.name }} ({{ dept.code }})
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-md-2 d-flex gap-2">
+      <button type="submit" class="btn btn-primary w-100">Search</button>
+      <a href="{{ url_for('admin.students') }}" class="btn btn-outline-secondary" title="Reset"><i class="bi bi-arrow-counterclockwise"></i></a>
+    </div>
+  </form>
+</div>
+
+<!-- Student Accounts Table -->
+<div class="table-panel border shadow-sm">
+  <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light">
+    <span class="fw-bold text-dark">Registered Student Accounts ({{ students|length }})</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead>
+        <tr>
+          <th>Student Name</th>
+          <th>USN / Student ID</th>
+          <th>Department</th>
+          <th>Academic Year</th>
+          <th>Contact</th>
+          <th>Total Events Registered</th>
+          <th>Account Status</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if students %}
+          {% for student in students %}
+          <tr>
+            <td>
+              <span class="fw-bold text-dark">{{ student.name }}</span><br>
+              <small class="text-muted">Member since {{ student.created_at.strftime('%b %d, %Y') }}</small>
+            </td>
+            <td>
+              <span class="badge bg-light text-dark border font-monospace">{{ student.student_id or 'No USN' }}</span>
+            </td>
+            <td>
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                {{ student.department.name if student.department else 'Unassigned' }}
+              </span>
+            </td>
+            <td class="small">{{ student.academic_year or 'Not set' }}</td>
+            <td class="small">
+              <div><i class="bi bi-envelope me-1 text-muted"></i>{{ student.email }}</div>
+              <div><i class="bi bi-telephone me-1 text-muted"></i>{{ student.phone_number or 'No phone' }}</div>
+            </td>
+            <td>
+              <span class="badge bg-secondary-subtle text-secondary fs-6">{{ student.registrations|length }} Events</span>
+            </td>
+            <td>
+              {% if student.is_active %}
+                <span class="badge bg-success-subtle text-success border border-success-subtle">Active</span>
+              {% else %}
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Deactivated</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              <div class="btn-group btn-group-sm">
+                <!-- Registration History Modal Button -->
+                <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#historyModal{{ student.id }}" title="View Registration History">
+                  <i class="bi bi-clock-history"></i>
+                </button>
+
+                <!-- Toggle Active/Inactive -->
+                <form method="post" action="{{ url_for('admin.toggle_student_status', student_id=student.id) }}" class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  {% if student.is_active %}
+                  <button type="submit" class="btn btn-outline-danger" title="Deactivate Account" onclick="return confirm('Deactivate this student account?')">
+                    <i class="bi bi-slash-circle"></i>
+                  </button>
+                  {% else %}
+                  <button type="submit" class="btn btn-outline-success" title="Activate Account">
+                    <i class="bi bi-check-circle"></i>
+                  </button>
+                  {% endif %}
+                </form>
+              </div>
+
+              <!-- History Modal -->
+              <div class="modal fade text-start" id="historyModal{{ student.id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-lg">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title"><i class="bi bi-person-circle me-2 text-primary"></i> Registration History: {{ student.name }}</h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                      <div class="mb-3 p-3 bg-light rounded-3 d-flex justify-content-between">
+                        <div>
+                          <strong>USN:</strong> {{ student.student_id or 'N/A' }} | <strong>Dept:</strong> {{ student.department.name if student.department else 'N/A' }}
+                        </div>
+                        <div>
+                          <strong>Status:</strong> {{ 'Active' if student.is_active else 'Deactivated' }}
+                        </div>
+                      </div>
+
+                      <h6 class="fw-bold mb-2">Registered Events</h6>
+                      {% if student.registrations %}
+                        <div class="table-responsive">
+                          <table class="table table-sm table-hover align-middle">
+                            <thead>
+                              <tr>
+                                <th>Event</th>
+                                <th>Event Date</th>
+                                <th>Registration Status</th>
+                                <th>Attendance</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {% for reg in student.registrations %}
+                              <tr>
+                                <td>{{ reg.event.title }}</td>
+                                <td class="small">{{ reg.event.event_date.strftime('%b %d, %Y') }}</td>
+                                <td><span class="badge bg-light text-dark border">{{ reg.status }}</span></td>
+                                <td>
+                                  {% if reg.attendance %}
+                                    <span class="badge bg-{{ 'success' if reg.attendance.status == 'Present' else 'danger' if reg.attendance.status == 'Absent' else 'warning text-dark' }}">
+                                      {{ reg.attendance.status }}
+                                    </span>
+                                  {% else %}
+                                    <span class="badge bg-light text-muted border">Unmarked</span>
+                                  {% endif %}
+                                </td>
+                              </tr>
+                              {% endfor %}
+                            </tbody>
+                          </table>
+                        </div>
+                      {% else %}
+                        <p class="text-muted small">No event registrations found for this student.</p>
+                      {% endif %}
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="8" class="text-center py-5 text-muted">
+              <i class="bi bi-people" style="font-size: 2rem;"></i>
+              <p class="mt-2 mb-0">No student accounts found matching your query.</p>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

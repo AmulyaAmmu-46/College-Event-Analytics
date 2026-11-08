@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<div class="page-heading"><div><span class="eyebrow">WELCOME BACK</span><h1>Hello, {{ current_user.name }}</h1><p>Here’s your workspace for college events.</p></div>
+{% if current_user.role in ['admin', 'coordinator'] %}<a class="btn btn-primary" href="{{ url_for('events.create') }}"><i class="bi bi-plus-lg me-2"></i>Create event</a>
+{% elif current_user.role == 'student' %}<a class="btn btn-primary" href="{{ url_for('students.dashboard') }}">View my events</a>{% endif %}</div>
+<div class="row g-3 mt-2">
+  <div class="col-md-4"><a class="shortcut-card" href="{{ url_for('events.listing') }}"><i class="bi bi-calendar2-week"></i><span>Browse events</span><i class="bi bi-arrow-up-right ms-auto"></i></a></div>
+  {% if current_user.role in ['admin', 'coordinator'] %}
+  <div class="col-md-4"><a class="shortcut-card" href="{{ url_for('analytics.dashboard') }}"><i class="bi bi-pie-chart"></i><span>View analytics</span><i class="bi bi-arrow-up-right ms-auto"></i></a></div>
+  <div class="col-md-4"><a class="shortcut-card" href="{{ url_for('reports.index') }}"><i class="bi bi-download"></i><span>Export reports</span><i class="bi bi-arrow-up-right ms-auto"></i></a></div>
+  {% else %}
+  <div class="col-md-4"><a class="shortcut-card" href="{{ url_for('students.dashboard') }}"><i class="bi bi-person-check"></i><span>My registrations</span><i class="bi bi-arrow-up-right ms-auto"></i></a></div>
+  {% endif %}
+</div>
+{% endblock %}

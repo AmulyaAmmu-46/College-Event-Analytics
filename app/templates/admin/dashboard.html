@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+{% block title %}Administrator Dashboard - College Event Analytics{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+  <div>
+    <span class="eyebrow">ADMINISTRATIVE CONTROL CENTER</span>
+    <h1 class="h2">Admin Analytics Dashboard</h1>
+    <p>Live campus event metrics, registrations, attendance rates, and feedback across departments.</p>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-primary" href="{{ url_for('events.create') }}">
+      <i class="bi bi-plus-lg me-1"></i> Schedule New Event
+    </a>
+    <a class="btn btn-outline-secondary" href="{{ url_for('analytics.dashboard') }}">
+      <i class="bi bi-bar-chart-line me-1"></i> Full Analytics
+    </a>
+  </div>
+</div>
+
+<!-- Quick Action Shortcuts -->
+<div class="row g-3 mb-4">
+  <div class="col-xl-2 col-md-4 col-sm-6">
+    <a class="shortcut-card" href="{{ url_for('events.create') }}">
+      <i class="bi bi-calendar-plus"></i>
+      <span>Schedule Event</span>
+      <i class="bi bi-chevron-right ms-auto text-muted"></i>
+    </a>
+  </div>
+  <div class="col-xl-2 col-md-4 col-sm-6">
+    <a class="shortcut-card" href="{{ url_for('events.listing') }}">
+      <i class="bi bi-calendar3"></i>
+      <span>View All Events</span>
+      <i class="bi bi-chevron-right ms-auto text-muted"></i>
+    </a>
+  </div>
+  <div class="col-xl-2 col-md-4 col-sm-6">
+    <a class="shortcut-card" href="{{ url_for('admin.registrations') }}">
+      <i class="bi bi-people-fill"></i>
+      <span>Registered Students</span>
+      <i class="bi bi-chevron-right ms-auto text-muted"></i>
+    </a>
+  </div>
+  <div class="col-xl-2 col-md-4 col-sm-6">
+    <a class="shortcut-card" href="{{ url_for('attendance.index') }}">
+      <i class="bi bi-check2-square"></i>
+      <span>Mark Attendance</span>
+      <i class="bi bi-chevron-right ms-auto text-muted"></i>
+    </a>
+  </div>
+  <div class="col-xl-2 col-md-4 col-sm-6">
+    <a class="shortcut-card" href="{{ url_for('analytics.dashboard') }}">
+      <i class="bi bi-pie-chart-fill"></i>
+      <span>View Analytics</span>
+      <i class="bi bi-chevron-right ms-auto text-muted"></i>
+    </a>
+  </div>
+  <div class="col-xl-2 col-md-4 col-sm-6">
+    <a class="shortcut-card" href="{{ url_for('reports.index') }}">
+      <i class="bi bi-file-earmark-arrow-down"></i>
+      <span>Generate Reports</span>
+      <i class="bi bi-chevron-right ms-auto text-muted"></i>
+    </a>
+  </div>
+</div>
+
+<!-- 8 Summary Cards Required by Prompt Section 4.2 -->
+<div class="row g-3 mb-4">
+  <div class="col-xl-3 col-md-6">
+    <div class="stat-card stat-blue">
+      <span>Total Events</span>
+      <strong>{{ kpi.total_events }}</strong>
+      <div class="stat-icon blue"><i class="bi bi-calendar-event"></i></div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6">
+    <div class="stat-card stat-green">
+      <span>Upcoming Events</span>
+      <strong>{{ kpi.upcoming_events }}</strong>
+      <div class="stat-icon green"><i class="bi bi-clock-history"></i></div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6">
+    <div class="stat-card stat-purple">
+      <span>Completed Events</span>
+      <strong>{{ kpi.completed_events }}</strong>
+      <div class="stat-icon purple"><i class="bi bi-calendar2-check"></i></div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6">
+    <div class="stat-card stat-orange">
+      <span>Total Registered Students</span>
+      <strong>{{ kpi.total_registered }}</strong>
+      <div class="stat-icon orange"><i class="bi bi-person-lines-fill"></i></div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6">
+    <div class="stat-card stat-green">
+      <span>Total Present Students</span>
+      <strong>{{ kpi.total_present }}</strong>
+      <div class="stat-icon green"><i class="bi bi-person-check"></i></div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6">
+    <div class="stat-card stat-red">
+      <span>Total Absent Students</span>
+      <strong>{{ kpi.total_absent }}</strong>
+      <div class="stat-icon red"><i class="bi bi-person-x"></i></div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6">
+    <div class="stat-card stat-blue">
+      <span>Average Attendance Rate</span>
+      <strong>{{ kpi.avg_attendance_rate }}%</strong>
+      <div class="stat-icon blue"><i class="bi bi-percent"></i></div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6">
+    <div class="stat-card stat-purple">
+      <span>Average Feedback Rating</span>
+      <strong>{{ kpi.avg_feedback_rating }} <small class="text-muted fs-6">/ 5.0</small></strong>
+      <div class="stat-icon purple"><i class="bi bi-star-fill text-warning"></i></div>
+    </div>
+  </div>
+</div>
+
+<!-- Department Participation Overview & Recent Events -->
+<div class="row g-4 mb-4">
+  <!-- Department Participation Cards -->
+  <div class="col-lg-5">
+    <div class="section-panel h-100">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0"><i class="bi bi-building me-2 text-primary"></i> 9 Departments Participation</h5>
+        <a href="{{ url_for('admin.departments') }}" class="small text-decoration-none">Manage Depts</a>
+      </div>
+      <p class="text-muted small mb-3">Active event registrations distributed across all nine academic departments.</p>
+
+      <div class="d-flex flex-column gap-2">
+        {% for dept in departments %}
+        {% set count = dept_participation.get(dept.code, 0) %}
+        {% set pct = (count / kpi.total_registered * 100) if kpi.total_registered > 0 else 0 %}
+        <div>
+          <div class="d-flex justify-content-between small mb-1">
+            <span class="fw-semibold">{{ dept.name }} ({{ dept.code }})</span>
+            <span class="text-muted">{{ count }} registrations ({{ pct|round(1) }}%)</span>
+          </div>
+          <div class="progress" style="height: 6px;">
+            <div class="progress-bar bg-primary" role="progressbar" style="width: {{ pct }}%"></div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Scheduled Events -->
+  <div class="col-lg-7">
+    <div class="section-panel h-100">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0"><i class="bi bi-calendar-event me-2 text-primary"></i> Recent & Scheduled Events</h5>
+        <a href="{{ url_for('events.listing') }}" class="small text-decoration-none">View All</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead>
+            <tr>
+              <th>Event Title</th>
+              <th>Date</th>
+              <th>Status</th>
+              <th>Registrations</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for event in recent_events %}
+            <tr>
+              <td>
+                <span class="fw-semibold text-dark">{{ event.title }}</span><br>
+                <small class="text-muted">{{ event.category }} · {{ event.venue }}</small>
+              </td>
+              <td class="small">{{ event.event_date.strftime('%b %d, %Y') }}</td>
+              <td>
+                <span class="status-badge status-{{ event.status|lower }}">{{ event.status }}</span>
+              </td>
+              <td class="small">
+                <strong>{{ event.active_registrations_count }}</strong>
+                {% if event.capacity %}<span class="text-muted">/ {{ event.capacity }}</span>{% endif %}
+              </td>
+              <td>
+                <div class="btn-group btn-group-sm">
+                  <a href="{{ url_for('events.detail', event_id=event.id) }}" class="btn btn-outline-secondary" title="View"><i class="bi bi-eye"></i></a>
+                  <a href="{{ url_for('events.edit', event_id=event.id) }}" class="btn btn-outline-primary" title="Edit"><i class="bi bi-pencil"></i></a>
+                  <a href="{{ url_for('attendance.manage', event_id=event.id) }}" class="btn btn-outline-success" title="Attendance"><i class="bi bi-check2"></i></a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Latest Registrations & Recent Student Feedback -->
+<div class="row g-4">
+  <!-- Latest Registrations -->
+  <div class="col-lg-6">
+    <div class="section-panel h-100">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0"><i class="bi bi-person-check-fill me-2 text-primary"></i> Latest Student Registrations</h5>
+        <a href="{{ url_for('admin.registrations') }}" class="small text-decoration-none">View All</a>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-hover align-middle small">
+          <thead>
+            <tr>
+              <th>Student</th>
+              <th>Department</th>
+              <th>Event</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for reg in latest_registrations %}
+            <tr>
+              <td>
+                <span class="fw-semibold">{{ reg.student.name }}</span><br>
+                <span class="text-muted">{{ reg.student.student_id or 'No USN' }}</span>
+              </td>
+              <td><span class="badge bg-light text-dark border">{{ reg.student.department.code if reg.student.department else 'N/A' }}</span></td>
+              <td class="text-truncate" style="max-width: 180px;">{{ reg.event.title }}</td>
+              <td class="text-muted">{{ reg.registered_at.strftime('%b %d, %H:%M') }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Recent Feedback -->
+  <div class="col-lg-6">
+    <div class="section-panel h-100">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="fw-bold mb-0"><i class="bi bi-chat-quote-fill me-2 text-primary"></i> Recent Student Feedback</h5>
+        <a href="{{ url_for('feedback.index') }}" class="small text-decoration-none">View All Feedback</a>
+      </div>
+      {% if recent_feedback %}
+        {% for fb in recent_feedback %}
+        <div class="p-3 mb-2 rounded-3 bg-light border">
+          <div class="d-flex justify-content-between align-items-center mb-1">
+            <span class="fw-semibold text-dark small">{{ fb.registration.event.title }}</span>
+            <div class="text-warning small">
+              {% for i in range(fb.satisfaction) %}<i class="bi bi-star-fill"></i>{% endfor %}
+            </div>
+          </div>
+          {% if fb.comments %}
+          <p class="small text-muted mb-1 fst-italic">"{{ fb.comments }}"</p>
+          {% endif %}
+          <div class="d-flex justify-content-between small text-secondary">
+            <span>{{ fb.registration.student.department.name if fb.registration.student.department else 'Student' }}</span>
+            <span>{{ fb.submitted_at.strftime('%b %d, %Y') }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <p class="text-muted small text-center my-4">No student feedback recorded yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

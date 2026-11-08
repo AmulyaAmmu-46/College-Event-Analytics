@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Attendance Management - College Event Analytics{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+  <div>
+    <span class="eyebrow">PARTICIPATION VERIFICATION</span>
+    <h1 class="h2">Attendance Management</h1>
+    <p>Select an event to mark individual attendance (Present, Absent, Excused), execute bulk actions, and export attendance sheets.</p>
+  </div>
+</div>
+
+<div class="table-panel border shadow-sm">
+  <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light">
+    <span class="fw-bold text-dark">Events Attendance Register ({{ events_summary|length }})</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Event Title</th>
+          <th>Category & Date</th>
+          <th>Venue</th>
+          <th>Total Registered</th>
+          <th>Present</th>
+          <th>Absent</th>
+          <th>Excused</th>
+          <th>Attendance Rate</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if events_summary %}
+          {% for item in events_summary %}
+          {% set ev = item.event %}
+          <tr>
+            <td>
+              <a href="{{ url_for('attendance.manage', event_id=ev.id) }}" class="fw-bold text-dark text-decoration-none">
+                {{ ev.title }}
+              </a><br>
+              <span class="status-badge status-{{ ev.status|lower }}">{{ ev.status }}</span>
+            </td>
+            <td class="small">
+              <span class="badge bg-light text-dark border">{{ ev.category }}</span><br>
+              <span class="text-muted">{{ ev.event_date.strftime('%B %d, %Y') }}</span>
+            </td>
+            <td class="small">{{ ev.venue }}</td>
+            <td><strong>{{ item.total_registered }}</strong> students</td>
+            <td><span class="badge bg-success">{{ item.present }}</span></td>
+            <td><span class="badge bg-danger">{{ item.absent }}</span></td>
+            <td><span class="badge bg-warning text-dark">{{ item.excused }}</span></td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                <span class="fw-bold">{{ item.attendance_rate }}%</span>
+                <div class="progress flex-grow-1" style="height: 6px; min-width: 60px;">
+                  <div class="progress-bar bg-success" role="progressbar" style="width: {{ item.attendance_rate }}%"></div>
+                </div>
+              </div>
+            </td>
+            <td class="text-end">
+              <div class="btn-group btn-group-sm">
+                <a href="{{ url_for('attendance.manage', event_id=ev.id) }}" class="btn btn-primary" title="Mark Attendance">
+                  <i class="bi bi-check2-square me-1"></i> Mark
+                </a>
+                <a href="{{ url_for('attendance.export_csv', event_id=ev.id) }}" class="btn btn-outline-success" title="Download CSV">
+                  <i class="bi bi-download"></i>
+                </a>
+                <a href="{{ url_for('attendance.participants', event_id=ev.id) }}" class="btn btn-outline-secondary" title="Participants">
+                  <i class="bi bi-people"></i>
+                </a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="9" class="text-center py-5 text-muted">
+              No events found for attendance marking.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

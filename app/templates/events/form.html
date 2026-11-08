@@ -1,0 +1,160 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit Event' if event else 'Schedule Event' }} - College Event Analytics{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-xl-9 col-lg-10">
+    <div class="section-panel shadow-sm">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+          <span class="eyebrow">EVENT MANAGEMENT</span>
+          <h1 class="h2 mt-1">{{ 'Edit Scheduled Event' if event else 'Schedule New College Event' }}</h1>
+        </div>
+        <a class="btn btn-outline-secondary btn-sm" href="{{ url_for('events.listing') }}">
+          <i class="bi bi-arrow-left me-1"></i> Back to Events
+        </a>
+      </div>
+
+      <p class="text-muted small mb-4">
+        Configure event timing, venue allocation, participant capacity, and departmental eligibility. Overlapping venue bookings are automatically detected and prevented.
+      </p>
+
+      <form method="post" class="row g-3">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="col-md-8">
+          <label class="form-label" for="title">Event Title <span class="text-danger">*</span></label>
+          <input class="form-control" id="title" name="title" required maxlength="180" placeholder="e.g. Annual Autonomous Drone Design Challenge" value="{{ request.form.get('title', event.title if event else '') }}">
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label" for="category">Category <span class="text-danger">*</span></label>
+          <input class="form-control" id="category" name="category" list="categoryOptions" required placeholder="Choose or type..." value="{{ request.form.get('category', event.category if event else '') }}">
+          <datalist id="categoryOptions">
+            {% for cat in categories %}
+            <option value="{{ cat }}">
+            {% endfor %}
+          </datalist>
+        </div>
+
+        <div class="col-12">
+          <label class="form-label" for="description">Event Description <span class="text-danger">*</span></label>
+          <textarea class="form-control" id="description" name="description" rows="3" placeholder="Provide detailed agenda, guest speakers, prerequisites, and learning outcomes...">{{ request.form.get('description', event.description if event else '') }}</textarea>
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label" for="event_type">Event Type <span class="text-danger">*</span></label>
+          <select class="form-select" id="event_type" name="event_type">
+            {% for et in event_types %}
+            <option value="{{ et }}" {% if request.form.get('event_type', event.event_type if event else 'Offline') == et %}selected{% endif %}>{{ et }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-8">
+          <label class="form-label" for="venue">Event Venue / Online Link <span class="text-danger">*</span></label>
+          <div class="input-group">
+            <span class="input-group-text bg-light"><i class="bi bi-geo-alt"></i></span>
+            <input class="form-control" id="venue" name="venue" required placeholder="e.g. Auditorium Hall 1 or Zoom Link" value="{{ request.form.get('venue', event.venue if event else '') }}">
+          </div>
+          <div class="form-text">Same-venue scheduling conflicts on overlapping dates/times are prohibited.</div>
+        </div>
+
+        <!-- Department Selection -->
+        <div class="col-md-6">
+          <label class="form-label" for="department_id">Primary Organizing Department <span class="text-danger">*</span></label>
+          <select class="form-select" id="department_id" name="department_id">
+            <option value="">Select Department...</option>
+            {% for department in departments %}
+            <option value="{{ department.id }}" {% if request.form.get('department_id', event.department_id|string if event and event.department_id else '') == department.id|string %}selected{% endif %}>
+              {{ department.name }} ({{ department.code }})
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label d-block">Department Eligibility Scope</label>
+          <div class="form-check mt-2">
+            <input class="form-check-input" type="checkbox" id="is_college_wide" name="is_college_wide" value="1" {% if request.form.get('is_college_wide') or (event and event.is_college_wide) %}checked{% endif %}>
+            <label class="form-check-label fw-bold text-dark" for="is_college_wide">
+              College-Wide Event (Open to all 9 Departments)
+            </label>
+          </div>
+          <div class="form-text">Check this box to allow all college students to register regardless of their department.</div>
+        </div>
+
+        <!-- Coordinator Assignment -->
+        {% if current_user.role == 'admin' %}
+        <div class="col-12">
+          <label class="form-label" for="coordinator_id">Assigned Event Coordinator <span class="text-danger">*</span></label>
+          <select class="form-select" id="coordinator_id" name="coordinator_id" required>
+            <option value="">Select Faculty Coordinator...</option>
+            {% for coordinator in coordinators %}
+            <option value="{{ coordinator.id }}" {% if request.form.get('coordinator_id', event.coordinator_id|string if event else '') == coordinator.id|string %}selected{% endif %}>
+              {{ coordinator.name }} ({{ coordinator.email }}) — {{ coordinator.department.code if coordinator.department else coordinator.role|title }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        {% endif %}
+
+        <!-- Dates and Times -->
+        <div class="col-md-4">
+          <label class="form-label" for="event_date">Event Date <span class="text-danger">*</span></label>
+          <input class="form-control" id="event_date" name="event_date" type="date" required value="{{ request.form.get('event_date', event.event_date.isoformat() if event else '') }}">
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label" for="start_time">Start Time <span class="text-danger">*</span></label>
+          <input class="form-control" id="start_time" name="start_time" type="time" required value="{{ request.form.get('start_time', event.start_time.strftime('%H:%M') if event else '') }}">
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label" for="end_time">End Time <span class="text-danger">*</span></label>
+          <input class="form-control" id="end_time" name="end_time" type="time" required value="{{ request.form.get('end_time', event.end_time.strftime('%H:%M') if event else '') }}">
+        </div>
+
+        <!-- Registration Deadlines and Capacity -->
+        <div class="col-md-4">
+          <label class="form-label" for="registration_start_date">Registration Opens</label>
+          <input class="form-control" id="registration_start_date" name="registration_start_date" type="date" value="{{ request.form.get('registration_start_date', event.registration_start_date.isoformat() if event and event.registration_start_date else '') }}">
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label" for="registration_deadline">Registration Deadline <span class="text-danger">*</span></label>
+          <input class="form-control" id="registration_deadline" name="registration_deadline" type="date" required value="{{ request.form.get('registration_deadline', event.registration_deadline.isoformat() if event else '') }}">
+        </div>
+
+        <div class="col-md-4">
+          <label class="form-label" for="capacity">Maximum Participants</label>
+          <input class="form-control" id="capacity" name="capacity" type="number" min="1" placeholder="e.g. 50 (leave empty for unlimited)" value="{{ request.form.get('capacity', event.capacity if event and event.capacity else '') }}">
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label" for="status">Event Status</label>
+          <select class="form-select" id="status" name="status">
+            {% for status in statuses %}
+            <option value="{{ status }}" {% if request.form.get('status', event.status if event else 'Upcoming') == status %}selected{% endif %}>
+              {{ status }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label" for="image_url">Poster / Image URL</label>
+          <input class="form-control" id="image_url" name="image_url" placeholder="https://... (optional)" value="{{ request.form.get('image_url', event.image_url if event and event.image_url else '') }}">
+        </div>
+
+        <div class="col-12 mt-4 pt-3 border-top d-flex gap-2">
+          <button class="btn btn-primary px-4 fw-bold" type="submit">
+            <i class="bi bi-check-circle me-1"></i> {{ 'Update Event' if event else 'Schedule Event' }}
+          </button>
+          <a class="btn btn-light" href="{{ url_for('events.listing') }}">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block title %}Feedback Management - College Event Analytics{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+  <div>
+    <span class="eyebrow">STUDENT EVALUATIONS</span>
+    <h1 class="h2">Feedback Management & Insights</h1>
+    <p>Review student feedback ratings across satisfaction, organization, content quality, and venue facilities.</p>
+  </div>
+  <a class="btn btn-outline-success" href="{{ url_for('feedback.export_csv', event_id=selected_event) }}">
+    <i class="bi bi-file-earmark-excel me-1"></i> Export Feedback CSV
+  </a>
+</div>
+
+<!-- Feedback KPI Cards -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3 col-6">
+    <div class="stat-card stat-purple">
+      <span>Overall Satisfaction</span>
+      <strong>{{ averages.satisfaction }} <small class="text-muted fs-6">/ 5.0</small></strong>
+      <div class="stat-icon purple"><i class="bi bi-star-fill text-warning"></i></div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="stat-card stat-blue">
+      <span>Event Organization</span>
+      <strong>{{ averages.organization }} <small class="text-muted fs-6">/ 5.0</small></strong>
+      <div class="stat-icon blue"><i class="bi bi-clipboard-check"></i></div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="stat-card stat-green">
+      <span>Content Quality</span>
+      <strong>{{ averages.content }} <small class="text-muted fs-6">/ 5.0</small></strong>
+      <div class="stat-icon green"><i class="bi bi-journal-bookmark"></i></div>
+    </div>
+  </div>
+  <div class="col-md-3 col-6">
+    <div class="stat-card stat-orange">
+      <span>Venue & Facilities</span>
+      <strong>{{ averages.venue }} <small class="text-muted fs-6">/ 5.0</small></strong>
+      <div class="stat-icon orange"><i class="bi bi-building"></i></div>
+    </div>
+  </div>
+</div>
+
+<!-- Sentiment Themes & Rating Distribution -->
+<div class="row g-4 mb-4">
+  <div class="col-md-6">
+    <div class="section-panel h-100">
+      <h5 class="fw-bold text-dark mb-3"><i class="bi bi-bar-chart-fill text-primary me-2"></i> Rating Distribution (1–5 Stars)</h5>
+      {% for star in range(5, 0, -1) %}
+      {% set count = distribution.get(star, 0) %}
+      {% set pct = (count / averages.total_count * 100) if averages.total_count > 0 else 0 %}
+      <div class="mb-2">
+        <div class="d-flex justify-content-between small mb-1">
+          <span>
+            {% for s in range(star) %}<i class="bi bi-star-fill text-warning"></i>{% endfor %}
+            <span class="ms-1 fw-semibold text-dark">{{ star }} Star{{ 's' if star > 1 else '' }}</span>
+          </span>
+          <span class="text-muted">{{ count }} reviews ({{ pct|round(1) }}%)</span>
+        </div>
+        <div class="progress" style="height: 8px;">
+          <div class="progress-bar bg-warning" role="progressbar" style="width: {{ pct }}%"></div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="section-panel h-100">
+      <h5 class="fw-bold text-dark mb-3"><i class="bi bi-lightbulb-fill text-warning me-2"></i> Transparent Feedback Themes</h5>
+      <p class="text-muted small">Algorithmic extraction of frequent positive praise and improvement areas.</p>
+
+      <div class="mb-3">
+        <h6 class="small fw-bold text-success text-uppercase"><i class="bi bi-hand-thumbs-up me-1"></i> Positive Highlights</h6>
+        <div class="d-flex flex-wrap gap-2 mt-2">
+          {% for word, cnt in themes.positive %}
+            <span class="badge bg-success-subtle text-success border border-success-subtle p-2">
+              {{ word|capitalize }} ({{ cnt }})
+            </span>
+          {% else %}
+            <span class="text-muted small">No positive theme words identified yet.</span>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div>
+        <h6 class="small fw-bold text-danger text-uppercase"><i class="bi bi-exclamation-circle me-1"></i> Suggested Improvements</h6>
+        <div class="d-flex flex-wrap gap-2 mt-2">
+          {% for word, cnt in themes.improvement %}
+            <span class="badge bg-danger-subtle text-danger border border-danger-subtle p-2">
+              {{ word|capitalize }} ({{ cnt }})
+            </span>
+          {% else %}
+            <span class="text-muted small">No critical improvement words reported.</span>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filters -->
+<div class="filter-panel rounded-4 border mb-4">
+  <form method="get" action="{{ url_for('feedback.index') }}" class="row g-3 align-items-end">
+    <div class="col-md-5">
+      <label class="form-label" for="fbEvent">Filter by Event</label>
+      <select class="form-select" id="fbEvent" name="event_id">
+        <option value="">All Events</option>
+        {% for ev in events %}
+        <option value="{{ ev.id }}" {% if selected_event == ev.id %}selected{% endif %}>{{ ev.title }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-md-5">
+      <label class="form-label" for="fbDept">Filter by Department</label>
+      <select class="form-select" id="fbDept" name="department_id">
+        <option value="">All Departments</option>
+        {% for dept in departments %}
+        <option value="{{ dept.id }}" {% if selected_dept == dept.id %}selected{% endif %}>{{ dept.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-md-2 d-flex gap-2">
+      <button type="submit" class="btn btn-primary w-100">Filter</button>
+      <a href="{{ url_for('feedback.index') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-counterclockwise"></i></a>
+    </div>
+  </form>
+</div>
+
+<!-- Feedback Entries Table -->
+<div class="table-panel border shadow-sm">
+  <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light">
+    <span class="fw-bold text-dark">Submitted Evaluations ({{ entries|length }})</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Event</th>
+          <th>Student Department</th>
+          <th>Overall</th>
+          <th>Organization</th>
+          <th>Content</th>
+          <th>Venue</th>
+          <th>Student Written Comments</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if entries %}
+          {% for fb in entries %}
+          <tr>
+            <td>
+              <span class="fw-bold text-dark">{{ fb.registration.event.title }}</span><br>
+              <small class="text-muted">{{ fb.registration.event.event_date.strftime('%b %d, %Y') }}</small>
+            </td>
+            <td>
+              <span class="badge bg-light text-dark border">
+                {{ fb.registration.student.department.name if fb.registration.student.department else 'Unassigned' }}
+              </span>
+            </td>
+            <td>
+              <span class="badge bg-warning text-dark"><i class="bi bi-star-fill me-1"></i>{{ fb.satisfaction }}/5</span>
+            </td>
+            <td class="small">{{ fb.organization }}/5</td>
+            <td class="small">{{ fb.content_quality }}/5</td>
+            <td class="small">{{ fb.venue_rating }}/5</td>
+            <td class="small text-wrap" style="max-width: 320px;">
+              {% if fb.comments %}
+                <em>"{{ fb.comments }}"</em>
+              {% else %}
+                <span class="text-muted">No comments provided.</span>
+              {% endif %}
+            </td>
+            <td class="small text-muted text-nowrap">{{ fb.submitted_at.strftime('%Y-%m-%d') }}</td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="8" class="text-center py-5 text-muted">
+              No feedback entries found matching the filter.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

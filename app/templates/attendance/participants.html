@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Participants · {{ event.title }}{% endblock %}
+{% block content %}
+<div class="page-heading"><div><span class="eyebrow">EVENT PARTICIPANTS</span><h1>{{ event.title }}</h1><p>Registration and attendance records.</p></div><a class="btn btn-primary" href="{{ url_for('attendance.manage', event_id=event.id) }}">Manage attendance</a></div>
+<div class="table-panel"><div class="table-responsive"><table class="table align-middle mb-0"><thead><tr><th>Student</th><th>Student ID</th><th>Department</th><th>Registration</th><th>Attendance</th><th>Registered</th></tr></thead><tbody>{% for registration in registrations %}<tr><td>{{ registration.student.name }}</td><td>{{ registration.student.student_id or '—' }}</td><td>{{ registration.student.department.name if registration.student.department else '—' }}</td><td>{{ registration.status }}</td><td>{{ registration.attendance.status if registration.attendance else 'Unmarked' }}</td><td>{{ registration.registered_at.strftime('%d %b %Y') }}</td></tr>{% else %}<tr><td colspan="6" class="text-secondary">No participants yet.</td></tr>{% endfor %}</tbody></table></div></div>
+{% endblock %}

@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+{% block title %}Registered Students Management - College Event Analytics{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+  <div>
+    <span class="eyebrow">STUDENT PARTICIPATION TRACKING</span>
+    <h1 class="h2">Registered Students Management</h1>
+    <p>Comprehensive register of all event enrollments, department distribution, and attendance verification.</p>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-outline-success" href="{{ url_for('admin.export_registrations_csv', event_id=selected_event, department_id=selected_dept) }}">
+      <i class="bi bi-file-earmark-excel me-1"></i> Export to CSV
+    </a>
+  </div>
+</div>
+
+<!-- Filters Panel -->
+<div class="filter-panel rounded-4 border mb-4">
+  <form method="get" action="{{ url_for('admin.registrations') }}" class="row g-3 align-items-end">
+    <div class="col-md-3">
+      <label class="form-label" for="filterEvent">Filter by Event</label>
+      <select class="form-select" id="filterEvent" name="event_id">
+        <option value="">All Events ({{ events|length }})</option>
+        {% for ev in events %}
+        <option value="{{ ev.id }}" {% if selected_event == ev.id %}selected{% endif %}>
+          {{ ev.title }} ({{ ev.event_date.strftime('%b %d') }})
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-md-3">
+      <label class="form-label" for="filterDept">Filter by Department</label>
+      <select class="form-select" id="filterDept" name="department_id">
+        <option value="">All 9 Departments</option>
+        {% for dept in departments %}
+        <option value="{{ dept.id }}" {% if selected_dept == dept.id %}selected{% endif %}>
+          {{ dept.name }} ({{ dept.code }})
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="col-md-2">
+      <label class="form-label" for="filterYear">Academic Year</label>
+      <select class="form-select" id="filterYear" name="academic_year">
+        <option value="">All Years</option>
+        <option value="Year 1" {% if selected_year == 'Year 1' %}selected{% endif %}>Year 1</option>
+        <option value="Year 2" {% if selected_year == 'Year 2' %}selected{% endif %}>Year 2</option>
+        <option value="Year 3" {% if selected_year == 'Year 3' %}selected{% endif %}>Year 3</option>
+        <option value="Year 4" {% if selected_year == 'Year 4' %}selected{% endif %}>Year 4</option>
+        <option value="MCA Year 1" {% if selected_year == 'MCA Year 1' %}selected{% endif %}>MCA Year 1</option>
+        <option value="MCA Year 2" {% if selected_year == 'MCA Year 2' %}selected{% endif %}>MCA Year 2</option>
+      </select>
+    </div>
+
+    <div class="col-md-3">
+      <label class="form-label" for="searchStudent">Search Student</label>
+      <div class="input-group">
+        <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+        <input type="text" class="form-control" id="searchStudent" name="q" placeholder="Name, USN, or Email" value="{{ search_query or '' }}">
+      </div>
+    </div>
+
+    <div class="col-md-1 d-flex gap-2">
+      <button type="submit" class="btn btn-primary w-100" title="Apply Filter">Filter</button>
+      <a href="{{ url_for('admin.registrations') }}" class="btn btn-outline-secondary" title="Reset Filters"><i class="bi bi-arrow-counterclockwise"></i></a>
+    </div>
+  </form>
+</div>
+
+<!-- Registrations Table -->
+<div class="table-panel border shadow-sm">
+  <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light">
+    <div>
+      <span class="fw-bold text-dark">Enrollment Records</span>
+      <span class="badge bg-primary ms-2">{{ records|length }} Found</span>
+    </div>
+    {% if selected_event %}
+      {% for ev in events if ev.id == selected_event %}
+      <div class="small text-secondary">
+        Capacity: <strong>{{ ev.active_registrations_count }} / {{ ev.capacity or 'Unlimited' }}</strong>
+        {% if ev.capacity %}· Remaining: <span class="badge bg-success">{{ ev.remaining_seats }} seats</span>{% endif %}
+      </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle">
+      <thead>
+        <tr>
+          <th>Reg ID</th>
+          <th>Student Name</th>
+          <th>USN / Student ID</th>
+          <th>Email & Phone</th>
+          <th>Department</th>
+          <th>Year</th>
+          <th>Event Name</th>
+          <th>Reg Date</th>
+          <th>Status</th>
+          <th>Attendance</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if records %}
+          {% for r in records %}
+          <tr>
+            <td><code class="fw-bold text-dark">#REG-{{ r.id }}</code></td>
+            <td>
+              <span class="fw-semibold text-dark">{{ r.student.name }}</span>
+            </td>
+            <td>
+              <span class="badge bg-light text-dark border">{{ r.student.student_id or 'No USN' }}</span>
+            </td>
+            <td class="small">
+              <div>{{ r.student.email }}</div>
+              <div class="text-muted">{{ r.student.phone_number or 'No Phone' }}</div>
+            </td>
+            <td>
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                {{ r.student.department.code if r.student.department else 'N/A' }}
+              </span>
+            </td>
+            <td class="small text-muted">{{ r.student.academic_year or 'N/A' }}</td>
+            <td>
+              <a href="{{ url_for('events.detail', event_id=r.event_id) }}" class="text-decoration-none fw-semibold">
+                {{ r.event.title }}
+              </a>
+              <div class="small text-muted">{{ r.event.event_date.strftime('%b %d, %Y') }}</div>
+            </td>
+            <td class="small text-muted">{{ r.registered_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>
+              {% if r.status == 'Active' %}
+                <span class="badge bg-success-subtle text-success border border-success-subtle">Active</span>
+              {% else %}
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Cancelled</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if r.attendance %}
+                {% if r.attendance.status == 'Present' %}
+                  <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>Present</span>
+                {% elif r.attendance.status == 'Absent' %}
+                  <span class="badge bg-danger"><i class="bi bi-x-lg me-1"></i>Absent</span>
+                {% elif r.attendance.status == 'Excused' %}
+                  <span class="badge bg-warning text-dark">Excused</span>
+                {% endif %}
+              {% else %}
+                <span class="badge bg-light text-secondary border">Unmarked</span>
+              {% endif %}
+            </td>
+            <td class="text-end">
+              {% if r.status == 'Active' %}
+              <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#cancelModal{{ r.id }}" title="Cancel Registration">
+                <i class="bi bi-x-circle"></i>
+              </button>
+
+              <!-- Cancel Modal -->
+              <div class="modal fade text-start" id="cancelModal{{ r.id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                  <div class="modal-content">
+                    <form method="post" action="{{ url_for('admin.cancel_student_registration', reg_id=r.id) }}">
+                      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                      <div class="modal-header">
+                        <h5 class="modal-title">Cancel Student Registration</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      </div>
+                      <div class="modal-body">
+                        <p>Are you sure you want to cancel the registration of <strong>{{ r.student.name }}</strong> for the event <strong>{{ r.event.title }}</strong>?</p>
+                        <div class="mb-3">
+                          <label class="form-label">Cancellation Reason</label>
+                          <textarea class="form-control" name="reason" rows="2" placeholder="e.g. Requested by student, duplicate entry, schedule conflict..." required></textarea>
+                        </div>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Keep Active</button>
+                        <button type="submit" class="btn btn-danger">Confirm Cancellation</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+              {% else %}
+              <span class="small text-muted">None</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="11" class="text-center py-5 text-muted">
+              <i class="bi bi-search" style="font-size: 2rem;"></i>
+              <p class="mt-2 mb-0">No registered students found matching the selected filters.</p>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

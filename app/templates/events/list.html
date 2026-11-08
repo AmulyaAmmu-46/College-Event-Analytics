@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Browse College Events - College Event Analytics{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+  <div>
+    <span class="eyebrow">CAMPUS EVENT DIRECTORY</span>
+    <h1 class="h2">Explore College Events</h1>
+    <p>Discover academic summits, coding hackathons, cultural festivals, workshops, and sports across 9 departments.</p>
+  </div>
+  {% if current_user.is_authenticated and current_user.role in ['admin', 'coordinator'] %}
+  <div class="d-flex gap-2">
+    <a class="btn btn-outline-secondary" href="{{ url_for('events.calendar') }}"><i class="bi bi-calendar3 me-1"></i> Calendar View</a>
+    <a class="btn btn-primary" href="{{ url_for('events.create') }}"><i class="bi bi-plus-lg me-1"></i> Schedule Event</a>
+  </div>
+  {% else %}
+  <a class="btn btn-outline-primary" href="{{ url_for('events.calendar') }}"><i class="bi bi-calendar3 me-1"></i> View Calendar</a>
+  {% endif %}
+</div>
+
+<!-- Filter Panel -->
+<form class="filter-panel row g-3 align-items-end mb-4 border shadow-sm rounded-4 bg-white" method="get">
+  <div class="col-lg-3 col-md-6">
+    <label class="form-label" for="q">Search Events</label>
+    <div class="input-group">
+      <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+      <input class="form-control" id="q" name="q" value="{{ request.args.get('q','') }}" placeholder="Title, keywords, venue...">
+    </div>
+  </div>
+
+  <div class="col-lg-2 col-md-6">
+    <label class="form-label" for="category">Category</label>
+    <select class="form-select" id="category" name="category">
+      <option value="">All Categories</option>
+      {% for cat in categories %}
+      <option value="{{ cat }}" {% if request.args.get('category') == cat %}selected{% endif %}>{{ cat }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="col-lg-3 col-md-6">
+    <label class="form-label" for="department">Department</label>
+    <select class="form-select" id="department" name="department">
+      <option value="">All 9 Departments</option>
+      {% for department in departments %}
+      <option value="{{ department.id }}" {% if request.args.get('department') == department.id|string %}selected{% endif %}>
+        {{ department.name }} ({{ department.code }})
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="col-lg-2 col-md-6">
+    <label class="form-label" for="status">Event Status</label>
+    <select class="form-select" id="status" name="status">
+      <option value="">All Statuses</option>
+      {% for status in statuses %}
+      <option value="{{ status }}" {% if request.args.get('status') == status %}selected{% endif %}>{{ status }}</option>
+      {% endfor %}
+    </select>
+  </div>
+
+  <div class="col-lg-2 col-md-6">
+    <label class="form-label" for="date">Event Date</label>
+    <input class="form-control" id="date" name="date" type="date" value="{{ request.args.get('date','') }}">
+  </div>
+
+  <div class="col-12 d-flex gap-2 justify-content-end">
+    <a class="btn btn-outline-secondary" href="{{ url_for('events.listing') }}">Clear Filters</a>
+    <button class="btn btn-primary px-4" type="submit">Apply Filters</button>
+  </div>
+</form>
+
+<!-- Event Cards Grid -->
+<div class="row g-4">
+  {% for event in events %}
+  <div class="col-lg-4 col-md-6">
+    <article class="event-card">
+      <div>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="badge bg-primary-subtle text-primary fw-bold">{{ event.category }}</span>
+          <span class="status-badge status-{{ event.status|lower }}">{{ event.status }}</span>
+        </div>
+
+        <h5 class="fw-bold text-dark mt-2 mb-2">
+          <a class="text-decoration-none text-dark stretched-link" href="{{ url_for('events.detail', event_id=event.id) }}">
+            {{ event.title }}
+          </a>
+        </h5>
+
+        <p class="text-secondary small line-clamp mb-3">{{ event.description }}</p>
+
+        <div class="event-meta">
+          <div><i class="bi bi-calendar3"></i> {{ event.event_date.strftime('%A, %b %d, %Y') }}</div>
+          <div><i class="bi bi-clock"></i> {{ event.start_time.strftime('%I:%M %p') }} - {{ event.end_time.strftime('%I:%M %p') }}</div>
+          <div><i class="bi bi-geo-alt"></i> {{ event.venue }} <span class="badge bg-light text-dark border ms-1">{{ event.event_type }}</span></div>
+          <div><i class="bi bi-building"></i> {{ event.departments_display }}</div>
+        </div>
+      </div>
+
+      <div class="pt-3 border-top mt-3 d-flex justify-content-between align-items-center">
+        <span class="small text-muted">
+          {% if event.capacity %}
+            <i class="bi bi-people me-1"></i> {{ event.remaining_seats }} / {{ event.capacity }} seats left
+          {% else %}
+            <i class="bi bi-people me-1"></i> Open capacity
+          {% endif %}
+        </span>
+        <span class="btn btn-sm btn-outline-primary position-relative" style="z-index: 2;">View Details</span>
+      </div>
+    </article>
+  </div>
+  {% else %}
+  <div class="col-12">
+    <div class="empty-state bg-white rounded-4 border p-5 text-center">
+      <i class="bi bi-calendar-x" style="font-size: 3rem; color: #a5b4fc;"></i>
+      <h3 class="h5 fw-bold mt-3">No events match these filters</h3>
+      <p class="text-muted">Try adjusting your search criteria, category, or clearing the department filter.</p>
+      <a class="btn btn-outline-primary mt-2" href="{{ url_for('events.listing') }}">Reset All Filters</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}

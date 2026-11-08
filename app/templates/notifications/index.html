@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Notifications - College Event Analytics{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+  <div>
+    <span class="eyebrow">IN-APP NOTIFICATION CENTER</span>
+    <h1 class="h2">Notifications & Activity Feed</h1>
+    <p>Real-time system alerts, event schedule announcements, enrollment updates, and feedback reminders.</p>
+  </div>
+  {% if notifications %}
+  <form method="post" action="{{ url_for('notifications.mark_all_read') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button class="btn btn-outline-primary" type="submit">
+      <i class="bi bi-check2-all me-1"></i> Mark All as Read
+    </button>
+  </form>
+  {% endif %}
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-xl-9 col-lg-10">
+    <div class="table-panel border shadow-sm">
+      <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light">
+        <span class="fw-bold text-dark">Recent Notifications ({{ notifications|length }})</span>
+        {% set unread_count = notifications|selectattr('is_read','equalto',False)|list|length %}
+        {% if unread_count > 0 %}
+          <span class="badge bg-danger">{{ unread_count }} Unread</span>
+        {% else %}
+          <span class="badge bg-success">All Caught Up</span>
+        {% endif %}
+      </div>
+
+      <div class="list-group list-group-flush">
+        {% if notifications %}
+          {% for notif in notifications %}
+          <div class="notif-item {% if not notif.is_read %}unread{% endif %}">
+            <div class="notif-icon">
+              {% if notif.category == 'event' %}
+                <i class="bi bi-calendar-event"></i>
+              {% elif notif.category == 'registration' %}
+                <i class="bi bi-ticket-perforated"></i>
+              {% elif notif.category == 'attendance' %}
+                <i class="bi bi-check2-circle"></i>
+              {% elif notif.category == 'feedback' %}
+                <i class="bi bi-star"></i>
+              {% elif notif.category == 'alert' %}
+                <i class="bi bi-exclamation-triangle text-danger"></i>
+              {% else %}
+                <i class="bi bi-bell"></i>
+              {% endif %}
+            </div>
+
+            <div class="flex-grow-1">
+              <div class="d-flex justify-content-between align-items-start">
+                <h6 class="fw-bold mb-1 text-dark">
+                  {{ notif.title }}
+                  {% if not notif.is_read %}
+                  <span class="badge bg-danger ms-1" style="font-size: 0.65rem;">New</span>
+                  {% endif %}
+                </h6>
+                <small class="text-muted text-nowrap ms-2">{{ notif.created_at.strftime('%b %d, %H:%M') }}</small>
+              </div>
+
+              <p class="text-secondary small mb-2">{{ notif.message }}</p>
+
+              <div class="d-flex align-items-center gap-3">
+                {% if notif.link %}
+                <a href="{{ notif.link }}" class="small fw-semibold text-primary text-decoration-none">
+                  Open Event <i class="bi bi-arrow-right"></i>
+                </a>
+                {% endif %}
+
+                {% if not notif.is_read %}
+                <form method="post" action="{{ url_for('notifications.mark_read', notification_id=notif.id) }}" class="d-inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                  <button type="submit" class="btn btn-link btn-sm text-muted p-0 text-decoration-none small">
+                    <i class="bi bi-check2"></i> Mark as read
+                  </button>
+                </form>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div class="p-5 text-center text-muted">
+            <i class="bi bi-bell-slash" style="font-size: 3rem; color: #cbd5e1;"></i>
+            <h5 class="fw-bold mt-3">No Notifications</h5>
+            <p class="small text-muted mb-0">You're completely up to date. Future event registrations and updates will appear here.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}Student Dashboard - College Event Analytics{% endblock %}
+
+{% block content %}
+<!-- Welcome Banner -->
+<div class="p-4 p-lg-5 mb-4 rounded-4 text-white shadow-sm" style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 60%, #4338ca 100%);">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+    <div>
+      <span class="badge bg-white bg-opacity-20 text-white mb-2 font-monospace">{{ current_user.student_id or 'Student' }} · {{ current_user.department.name if current_user.department else 'General' }}</span>
+      <h1 class="display-6 fw-bold mb-1">Welcome back, {{ current_user.name }}!</h1>
+      <p class="text-white-50 mb-0">Track your event enrollments, verify your attendance status, and submit valuable feedback.</p>
+    </div>
+    <div class="d-flex gap-2">
+      <a class="btn btn-light fw-bold text-primary px-3" href="{{ url_for('events.listing') }}">
+        <i class="bi bi-compass me-1"></i> Browse Events
+      </a>
+      <a class="btn btn-outline-light px-3" href="{{ url_for('students.my_registrations') }}">
+        <i class="bi bi-ticket-perforated me-1"></i> My Registrations
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- 5 KPI Summary Cards Required by Prompt Section 5.3 -->
+<div class="row g-3 mb-4">
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="stat-card stat-blue">
+      <span>Total Registered</span>
+      <strong>{{ stats.total_registered }}</strong>
+      <div class="stat-icon blue"><i class="bi bi-ticket-detailed"></i></div>
+    </div>
+  </div>
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="stat-card stat-green">
+      <span>Upcoming Events</span>
+      <strong>{{ stats.upcoming_count }}</strong>
+      <div class="stat-icon green"><i class="bi bi-calendar-event"></i></div>
+    </div>
+  </div>
+  <div class="col-xl-2 col-md-4 col-6">
+    <div class="stat-card stat-purple">
+      <span>Completed Events</span>
+      <strong>{{ stats.completed_count }}</strong>
+      <div class="stat-icon purple"><i class="bi bi-calendar2-check"></i></div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6 col-6">
+    <div class="stat-card stat-orange">
+      <span>Events Attended (Present)</span>
+      <strong>{{ stats.attended_count }}</strong>
+      <div class="stat-icon orange"><i class="bi bi-check2-circle"></i></div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6 col-12">
+    <div class="stat-card stat-red">
+      <span>Pending Feedback</span>
+      <strong class="text-danger">{{ stats.pending_feedback_count }}</strong>
+      <div class="stat-icon red"><i class="bi bi-chat-left-dots"></i></div>
+    </div>
+  </div>
+</div>
+
+<!-- Pending Feedback Action Alert -->
+{% if pending_feedback %}
+<div class="alert alert-warning border-warning shadow-sm rounded-4 p-3 mb-4">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <div>
+      <h6 class="fw-bold mb-1 text-dark"><i class="bi bi-exclamation-circle-fill text-warning me-2"></i> You have {{ pending_feedback|length }} completed event(s) waiting for your feedback!</h6>
+      <p class="small text-muted mb-0">Your honest evaluation directly influences the event's popularity score and departmental rankings.</p>
+    </div>
+    <div>
+      {% for item in pending_feedback %}
+      <a class="btn btn-warning btn-sm fw-bold text-dark me-1" href="{{ url_for('feedback.submit', registration_id=item.id) }}">
+        <i class="bi bi-star-fill me-1"></i> Rate {{ item.event.title|truncate(22) }}
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Registered Events History Table -->
+<div class="table-panel border shadow-sm mb-4">
+  <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light">
+    <div>
+      <span class="fw-bold text-dark"><i class="bi bi-ticket-perforated me-1 text-primary"></i> My Event Registrations ({{ registrations|length }})</span>
+    </div>
+    <a href="{{ url_for('students.my_registrations') }}" class="small text-decoration-none">View Full Register</a>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Event Title</th>
+          <th>Date & Time</th>
+          <th>Venue</th>
+          <th>Registration Status</th>
+          <th>Attendance Status</th>
+          <th class="text-end">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if registrations %}
+          {% for r in registrations %}
+          <tr>
+            <td>
+              <a href="{{ url_for('events.detail', event_id=r.event_id) }}" class="fw-bold text-dark text-decoration-none">
+                {{ r.event.title }}
+              </a>
+              <div class="small text-muted">{{ r.event.category }} · {{ r.event.departments_display }}</div>
+            </td>
+            <td class="small">
+              <div>{{ r.event.event_date.strftime('%a, %b %d, %Y') }}</div>
+              <div class="text-muted">{{ r.event.start_time.strftime('%I:%M %p') }}</div>
+            </td>
+            <td class="small">{{ r.event.venue }}</td>
+            <td>
+              {% if r.status == 'Active' %}
+                <span class="badge bg-success-subtle text-success border border-success-subtle">Active</span>
+              {% else %}
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Cancelled</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if r.attendance %}
+                {% if r.attendance.status == 'Present' %}
+                  <span class="badge bg-success"><i class="bi bi-check-lg me-1"></i>Present</span>
+                {% elif r.attendance.status == 'Absent' %}
+                  <span class="badge bg-danger"><i class="bi bi-x-lg me-1"></i>Absent</span>
+                {% elif r.attendance.status == 'Excused' %}
+                  <span class="badge bg-warning text-dark">Excused</span>
+                {% endif %}
+              {% else %}
+                <span class="badge bg-light text-muted border">Pending Event</span>
+              {% endif %}
+            </td>
+            <td class="text-end text-nowrap">
+              {% if r.status == 'Active' and r.event.event_date >= today and r.event.status not in ['Completed','Cancelled'] %}
+              <form method="post" action="{{ url_for('events.cancel_registration', registration_id=r.id) }}" class="d-inline" onsubmit="return confirm('Cancel this event registration?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-sm btn-outline-danger" type="submit">Cancel</button>
+              </form>
+              {% endif %}
+
+              {% if r.status == 'Active' and r.event.status == 'Completed' and r.attendance and r.attendance.status == 'Present' and not r.feedback %}
+                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('feedback.submit', registration_id=r.id) }}">
+                  <i class="bi bi-star me-1"></i> Leave Feedback
+                </a>
+              {% elif r.feedback %}
+                <span class="badge bg-light text-secondary border"><i class="bi bi-check-all text-success me-1"></i>Feedback Sent</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="6" class="text-center py-5 text-muted">
+              <i class="bi bi-ticket-perforated" style="font-size: 2.5rem; color: #a5b4fc;"></i>
+              <h5 class="fw-bold mt-2">No event registrations yet</h5>
+              <p class="small text-muted">Explore upcoming technical, cultural, and sports events to participate.</p>
+              <a class="btn btn-primary btn-sm mt-1" href="{{ url_for('events.listing') }}">Explore Campus Events</a>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Recommended Upcoming Events for Student -->
+<div class="mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h5 class="fw-bold text-dark mb-0"><i class="bi bi-stars text-warning me-2"></i> Upcoming College Events You Might Like</h5>
+    <a class="small text-decoration-none" href="{{ url_for('events.listing') }}">View All Events</a>
+  </div>
+
+  <div class="row g-3">
+    {% for ev in upcoming_events %}
+    <div class="col-md-6 col-lg-3">
+      <div class="p-3 bg-white rounded-3 border shadow-sm h-100 d-flex flex-direction-column justify-content-between">
+        <div>
+          <span class="badge bg-primary-subtle text-primary mb-2">{{ ev.category }}</span>
+          <h6 class="fw-bold text-dark mb-1">
+            <a href="{{ url_for('events.detail', event_id=ev.id) }}" class="text-decoration-none text-dark">{{ ev.title }}</a>
+          </h6>
+          <div class="small text-muted mb-2"><i class="bi bi-calendar3 me-1"></i>{{ ev.event_date.strftime('%b %d, %Y') }}</div>
+        </div>
+        <div class="pt-2 border-top mt-2 d-flex justify-content-between align-items-center">
+          <small class="text-muted">{{ ev.remaining_seats or 'Open' }} seats left</small>
+          <a class="btn btn-sm btn-outline-primary" href="{{ url_for('events.detail', event_id=ev.id) }}">Details</a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

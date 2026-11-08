@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Submit Event Feedback · {{ registration.event.title }}{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-lg-7 col-md-9">
+    <div class="section-panel shadow-sm">
+      <span class="eyebrow text-primary">POST-EVENT EVALUATION</span>
+      <h2 class="h3 fw-bold mt-1 text-dark">Feedback: {{ registration.event.title }}</h2>
+      <p class="text-secondary small mb-4">
+        Held on {{ registration.event.event_date.strftime('%B %d, %Y') }} at {{ registration.event.venue }}. Your evaluations directly influence event popularity metrics and future event quality.
+      </p>
+
+      <form method="post" action="{{ url_for('feedback.submit', registration_id=registration.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="mb-3">
+          <label class="form-label" for="satisfaction">1. Overall Satisfaction (1–5 Stars) <span class="text-danger">*</span></label>
+          <select class="form-select" id="satisfaction" name="satisfaction" required>
+            <option value="">Choose your rating...</option>
+            <option value="5">★★★★★ 5 — Excellent Experience</option>
+            <option value="4">★★★★☆ 4 — Very Good</option>
+            <option value="3">★★★☆☆ 3 — Good / Satisfactory</option>
+            <option value="2">★★☆☆☆ 2 — Fair / Needs Improvement</option>
+            <option value="1">★☆☆☆☆ 1 — Poor</option>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="organization">2. Event Organization & Punctuality <span class="text-danger">*</span></label>
+          <select class="form-select" id="organization" name="organization" required>
+            <option value="">Choose your rating...</option>
+            <option value="5">★★★★★ 5 — Smooth & Flawless Organization</option>
+            <option value="4">★★★★☆ 4 — Well Organized</option>
+            <option value="3">★★★☆☆ 3 — Average Coordination</option>
+            <option value="2">★★☆☆☆ 2 — Some Delays / Disorganization</option>
+            <option value="1">★☆☆☆☆ 1 — Very Disorganized</option>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="content_quality">3. Content Quality & Presentation Value <span class="text-danger">*</span></label>
+          <select class="form-select" id="content_quality" name="content_quality" required>
+            <option value="">Choose your rating...</option>
+            <option value="5">★★★★★ 5 — Outstanding & Highly Informative</option>
+            <option value="4">★★★★☆ 4 — Practical & Engaging</option>
+            <option value="3">★★★☆☆ 3 — Standard Content</option>
+            <option value="2">★★☆☆☆ 2 — Outdated or Superficial</option>
+            <option value="1">★☆☆☆☆ 1 — Not Useful</option>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="venue_rating">4. Venue, Audio/Visual & Facilities <span class="text-danger">*</span></label>
+          <select class="form-select" id="venue_rating" name="venue_rating" required>
+            <option value="">Choose your rating...</option>
+            <option value="5">★★★★★ 5 — Excellent Venue & Facilities</option>
+            <option value="4">★★★★☆ 4 — Good Seating & Acoustics</option>
+            <option value="3">★★★☆☆ 3 — Adequate Facility</option>
+            <option value="2">★★☆☆☆ 2 — Crowded or Technical Glitches</option>
+            <option value="1">★☆☆☆☆ 1 — Uncomfortable / Deficient</option>
+          </select>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label" for="comments">Written Feedback & Comments <span class="text-muted">(Optional)</span></label>
+          <textarea class="form-control" id="comments" name="comments" rows="4" maxlength="2000" placeholder="Share specific highlights, favorite sessions, or constructive suggestions for the organizers..."></textarea>
+          <div class="form-text">Max 2000 characters. Your feedback helps our department improve future programs.</div>
+        </div>
+
+        <div class="d-flex gap-2">
+          <button class="btn btn-primary px-4 fw-bold shadow-sm" type="submit">
+            <i class="bi bi-send me-1"></i> Submit Feedback
+          </button>
+          <a class="btn btn-light" href="{{ url_for('students.dashboard') }}">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

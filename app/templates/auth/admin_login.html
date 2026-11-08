@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Administrator Portal Login{% endblock %}
+
+{% block content %}
+<div class="auth-wrap">
+  <div class="auth-card border-top border-4 border-warning">
+    <div class="text-center mb-4">
+      <div class="d-inline-flex align-items-center justify-content-center bg-warning bg-opacity-10 text-dark rounded-circle p-3 mb-3">
+        <i class="bi bi-shield-lock-fill" style="font-size: 2.2rem; color: #d97706;"></i>
+      </div>
+      <span class="eyebrow text-warning">OFFICIAL ACCESS ONLY</span>
+      <h2 class="fw-bold text-dark mt-1">Administrator Portal</h2>
+      <p class="text-secondary small">Sign in to manage college events, mark attendance, review feedback, and access department analytics.</p>
+    </div>
+
+    <form method="post" action="{{ url_for('auth.admin_login') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+      <div class="mb-3">
+        <label for="adminEmail" class="form-label">Administrator / Coordinator Email</label>
+        <div class="input-group">
+          <span class="input-group-text bg-light text-secondary"><i class="bi bi-envelope"></i></span>
+          <input type="email" class="form-control" id="adminEmail" name="email" placeholder="admin@college.edu" required autofocus>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <div class="d-flex justify-content-between align-items-center">
+          <label for="adminPassword" class="form-label mb-0">Password</label>
+          <a href="#" class="small text-muted text-decoration-none" data-bs-toggle="modal" data-bs-target="#forgotPasswordModal">Forgot Password?</a>
+        </div>
+        <div class="input-group mt-1">
+          <span class="input-group-text bg-light text-secondary"><i class="bi bi-key"></i></span>
+          <input type="password" class="form-control" id="adminPassword" name="password" placeholder="••••••••" required>
+        </div>
+      </div>
+
+      <button type="submit" class="btn btn-warning w-100 fw-bold py-2 shadow-sm text-dark">
+        <i class="bi bi-box-arrow-in-right me-2"></i> Access Admin Dashboard
+      </button>
+    </form>
+
+    <div class="mt-4 pt-3 border-top text-center">
+      <p class="small text-muted mb-1">Are you a student looking to register or view events?</p>
+      <a href="{{ url_for('auth.login') }}" class="fw-semibold text-primary text-decoration-none">Go to Student Portal Login <i class="bi bi-arrow-right"></i></a>
+    </div>
+
+    <div class="mt-3 p-3 bg-light rounded-3 text-secondary small">
+      <strong><i class="bi bi-info-circle me-1"></i> Demo Credentials:</strong><br>
+      Admin: <code>admin@college.edu</code> / <code>CampusDemo123!</code><br>
+      Coordinator: <code>coordinator@college.edu</code> / <code>CampusDemo123!</code>
+    </div>
+  </div>
+</div>
+
+<!-- Forgot Password Modal -->
+<div class="modal fade" id="forgotPasswordModal" tabindex="-1" aria-labelledby="forgotPasswordModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="forgotPasswordModalLabel"><i class="bi bi-shield-exclamation text-warning me-2"></i> Administrative Password Recovery</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>Administrator and coordinator credentials are encrypted and centrally managed by the College IT & Network Security Operations Cell.</p>
+        <p class="mb-0">To request a credential reset or rotate your administrative key, please contact the IT Helpdesk at <code>it-support@college.edu</code> or re-seed the environment with the deployment master key.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+<div class="page-heading"><div><span class="eyebrow">EXPORT CENTER</span><h1>Reports & exports</h1><p>Download filtered event performance data in CSV format.</p></div></div>
+<form class="filter-panel row g-2 align-items-end mb-4" id="report-filters">
+  <div class="col-sm-6 col-lg-3"><label class="form-label" for="start">From date</label><input class="form-control" type="date" name="start" id="start"></div>
+  <div class="col-sm-6 col-lg-3"><label class="form-label" for="end">To date</label><input class="form-control" type="date" name="end" id="end"></div>
+  <div class="col-sm-6 col-lg-2"><label class="form-label" for="department">Department</label><select class="form-select" name="department" id="department"><option value="">All departments</option>{% for department in departments %}<option value="{{ department.id }}">{{ department.name }}</option>{% endfor %}</select></div>
+  <div class="col-sm-6 col-lg-2"><label class="form-label" for="category">Category</label><select class="form-select" name="category" id="category"><option value="">All categories</option>{% for category in categories %}<option>{{ category }}</option>{% endfor %}</select></div>
+  <div class="col-sm-6 col-lg-2"><label class="form-label" for="status">Status</label><select class="form-select" name="status" id="status"><option value="">All statuses</option>{% for status in statuses %}<option>{{ status }}</option>{% endfor %}</select></div>
+  <div class="col-12"><span class="small text-secondary">Filters apply to event date, department, category, and status. Coordinator exports include only assigned events.</span></div>
+</form>
+<div class="row g-3">
+{% for slug, title, description, icon in [
+('registrations','Event registrations','Participant list with event, department, registration status, and timestamp.','bi-person-plus'),
+('attendance','Attendance records','Attendance status and timestamps for registered participants.','bi-person-check'),
+('feedback','Student feedback','Event ratings and optional written comments.','bi-chat-square-text'),
+('departments','Department participation','Department-level registration and attendee counts by event.','bi-building'),
+('popularity','Popularity rankings','Transparent component metrics and the weighted popularity score.','bi-trophy'),
+('monthly','Monthly performance','Monthly registrations, attendees, attendance rate, and average rating.','bi-calendar3')
+] %}
+<div class="col-md-6 col-xl-4"><div class="report-card"><i class="bi {{ icon }}"></i><h2>{{ title }}</h2><p>{{ description }}</p><a class="btn btn-sm btn-outline-primary report-link" data-report="{{ slug }}" href="{{ url_for('reports.export', report_type=slug) }}">Download CSV <i class="bi bi-download ms-1"></i></a></div></div>
+{% endfor %}
+</div>
+{% endblock %}
+{% block scripts %}<script>
+document.getElementById('report-filters').addEventListener('change', function () {
+  const params = new URLSearchParams(new FormData(this));
+  document.querySelectorAll('.report-link').forEach(link => {
+    const url = new URL(link.href);
+    url.search = params.toString();
+    link.href = url.toString();
+  });
+});
+</script>{% endblock %}

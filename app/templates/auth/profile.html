@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+<div class="row justify-content-center"><div class="col-lg-7"><div class="section-panel">
+  <span class="eyebrow">ACCOUNT SETTINGS</span><h1 class="h2 mt-2">Your profile</h1><p class="text-secondary">Update your details or change your password.</p>
+  <form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="form-label mt-2" for="name">Name</label><input class="form-control mb-3" id="name" name="name" required value="{{ current_user.name }}">
+    <label class="form-label" for="email">Email</label><input class="form-control mb-3" id="email" value="{{ current_user.email }}" disabled>
+    {% if current_user.role == 'student' %}
+    <div class="row"><div class="col-sm-6"><label class="form-label" for="student_id">Student ID</label><input class="form-control mb-3" id="student_id" name="student_id" required value="{{ current_user.student_id or '' }}"></div><div class="col-sm-6"><label class="form-label" for="academic_year">Academic year</label><input class="form-control mb-3" id="academic_year" name="academic_year" required value="{{ current_user.academic_year or '' }}"></div></div>
+    <label class="form-label" for="department_id">Department</label><select class="form-select mb-3" id="department_id" name="department_id" required>{% for department in departments %}<option value="{{ department.id }}" {% if current_user.department_id == department.id %}selected{% endif %}>{{ department.name }}</option>{% endfor %}</select>
+    {% endif %}
+    <hr><h2 class="h5">Change password <span class="text-secondary fw-normal">(optional)</span></h2>
+    <label class="form-label" for="current_password">Current password</label><input class="form-control mb-3" id="current_password" name="current_password" type="password" autocomplete="current-password">
+    <label class="form-label" for="new_password">New password</label><input class="form-control mb-4" id="new_password" name="new_password" type="password" minlength="8" autocomplete="new-password">
+    <button class="btn btn-primary" type="submit">Save profile</button>
+  </form>
+</div></div></div>
+{% endblock %}

@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}{{ event.title }} - College Event Analytics{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-xl-9 col-lg-10">
+    <a class="back-link d-inline-flex align-items-center mb-3" href="{{ url_for('events.listing') }}">
+      <i class="bi bi-arrow-left me-1"></i> Back to All Events
+    </a>
+
+    <section class="detail-panel shadow-sm">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div class="d-flex gap-2">
+          <span class="badge bg-primary-subtle text-primary fw-bold">{{ event.category }}</span>
+          <span class="badge bg-secondary-subtle text-secondary">{{ event.event_type }}</span>
+        </div>
+        <span class="status-badge status-{{ event.status|lower }}">{{ event.status }}</span>
+      </div>
+
+      <h1 class="display-6 fw-bold text-dark">{{ event.title }}</h1>
+      <p class="lead text-secondary mt-2">{{ event.description }}</p>
+
+      <!-- Key Event Facts -->
+      <div class="row g-3 my-4">
+        <div class="col-sm-6">
+          <div class="detail-fact">
+            <i class="bi bi-calendar-event"></i>
+            <div>
+              <small>Date & Time</small>
+              <strong>{{ event.event_date.strftime('%A, %B %d, %Y') }}</strong>
+              <div class="small text-muted">{{ event.start_time.strftime('%I:%M %p') }} – {{ event.end_time.strftime('%I:%M %p') }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-sm-6">
+          <div class="detail-fact">
+            <i class="bi bi-geo-alt"></i>
+            <div>
+              <small>Venue / Location</small>
+              <strong>{{ event.venue }}</strong>
+              <div class="small text-muted">Type: {{ event.event_type }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-sm-6">
+          <div class="detail-fact">
+            <i class="bi bi-building"></i>
+            <div>
+              <small>Department Eligibility</small>
+              <strong>{{ event.departments_display }}</strong>
+              <div class="small text-muted">Organized by: {{ event.department.name if event.department else 'General' }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-sm-6">
+          <div class="detail-fact">
+            <i class="bi bi-people"></i>
+            <div>
+              <small>Registration Capacity</small>
+              <strong>
+                {% if event.capacity is not none %}
+                  {{ event.remaining_seats }} seats available ({{ event.active_registrations_count }}/{{ event.capacity }} filled)
+                {% else %}
+                  Unlimited Seats
+                {% endif %}
+              </strong>
+              <div class="small text-muted">Deadline: {{ event.registration_deadline.strftime('%B %d, %Y') }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Coordinator info -->
+      <div class="p-3 bg-light rounded-3 mb-4 d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-3">
+          <div class="bg-primary text-white rounded-circle d-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+            <i class="bi bi-person-badge fs-5"></i>
+          </div>
+          <div>
+            <div class="small text-muted">Faculty Event Coordinator</div>
+            <strong class="text-dark">{{ event.coordinator.name }}</strong>
+            <span class="text-muted small">({{ event.coordinator.email }})</span>
+          </div>
+        </div>
+        <div class="small text-muted">
+          Created on {{ event.created_at.strftime('%b %d, %Y') }}
+        </div>
+      </div>
+
+      <!-- Actions Area -->
+      <div class="d-flex flex-wrap gap-2 pt-3 border-top align-items-center">
+        {% if current_user.is_authenticated and current_user.role == 'student' %}
+          {% if is_registered %}
+            <div class="alert alert-success d-inline-flex align-items-center mb-0 py-2 px-3 me-2">
+              <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+              <span>You are officially registered for this event!</span>
+            </div>
+            {% if event.status == 'Upcoming' and event.event_date >= today %}
+            <form method="post" action="{{ url_for('events.cancel_registration', registration_id=student_registration.id) }}" onsubmit="return confirm('Are you sure you want to cancel your registration?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button class="btn btn-outline-danger" type="submit">Cancel My Registration</button>
+            </form>
+            {% endif %}
+          {% else %}
+            {% if not event.is_eligible_student(current_user) %}
+              <div class="alert alert-warning mb-0 py-2 px-3">
+                <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                This event is restricted to: <strong>{{ event.departments_display }}</strong>. Your registered department is not eligible.
+              </div>
+            {% elif event.status != 'Upcoming' %}
+              <button class="btn btn-secondary" disabled>Registration Closed ({{ event.status }})</button>
+            {% elif event.capacity is not none and event.remaining_seats <= 0 %}
+              <button class="btn btn-danger" disabled>Event Full (Capacity Reached)</button>
+            {% elif event.registration_deadline < today %}
+              <button class="btn btn-secondary" disabled>Registration Deadline Passed</button>
+            {% else %}
+              <form method="post" action="{{ url_for('events.register', event_id=event.id) }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="btn btn-primary px-4 fw-bold" type="submit">
+                  <i class="bi bi-ticket-perforated me-1"></i> Register for Event
+                </button>
+              </form>
+            {% endif %}
+          {% endif %}
+        {% elif not current_user.is_authenticated %}
+          <a class="btn btn-primary px-4 fw-bold" href="{{ url_for('auth.login') }}">
+            <i class="bi bi-box-arrow-in-right me-1"></i> Sign In to Register
+          </a>
+        {% endif %}
+
+        <!-- Administrative Controls -->
+        {% if current_user.is_authenticated and (current_user.role == 'admin' or (current_user.role == 'coordinator' and current_user.id == event.coordinator_id)) %}
+          <a class="btn btn-outline-primary" href="{{ url_for('events.edit', event_id=event.id) }}">
+            <i class="bi bi-pencil me-1"></i> Edit Event
+          </a>
+          <a class="btn btn-outline-success" href="{{ url_for('attendance.manage', event_id=event.id) }}">
+            <i class="bi bi-check2-square me-1"></i> Manage Attendance
+          </a>
+          <a class="btn btn-outline-info" href="{{ url_for('feedback.summary', event_id=event.id) }}">
+            <i class="bi bi-chat-heart me-1"></i> Feedback
+          </a>
+          <a class="btn btn-outline-secondary" href="{{ url_for('attendance.participants', event_id=event.id) }}">
+            <i class="bi bi-people me-1"></i> Participants
+          </a>
+        {% endif %}
+
+        {% if current_user.is_authenticated and current_user.role == 'admin' %}
+          <form method="post" action="{{ url_for('events.delete', event_id=event.id) }}" onsubmit="return confirm('Permanently delete this event? Note: Events with student registrations cannot be deleted.')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-outline-danger" type="submit">
+              <i class="bi bi-trash me-1"></i> Delete
+            </button>
+          </form>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+</div>
+{% endblock %}

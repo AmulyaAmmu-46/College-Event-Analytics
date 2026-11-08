@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}System Audit Logs - College Event Analytics{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+  <div>
+    <span class="eyebrow">GOVERNANCE & SECURITY</span>
+    <h1 class="h2">Administrative Audit Logs</h1>
+    <p>Traceable, timestamped audit trail of critical administrative and security events within the platform.</p>
+  </div>
+</div>
+
+<div class="table-panel border shadow-sm">
+  <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light">
+    <span class="fw-bold text-dark">Audit Trail Records ({{ logs|length }})</span>
+    <span class="badge bg-secondary">Immutable Event Log</span>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0 small">
+      <thead>
+        <tr>
+          <th>Log ID</th>
+          <th>Timestamp (UTC)</th>
+          <th>Action</th>
+          <th>User</th>
+          <th>IP Address</th>
+          <th>Details</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% if logs %}
+          {% for log in logs %}
+          <tr>
+            <td><code>#LOG-{{ log.id }}</code></td>
+            <td class="text-nowrap text-muted">{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            <td>
+              <span class="badge bg-dark-subtle text-dark border font-monospace">{{ log.action }}</span>
+            </td>
+            <td>
+              {% if log.user %}
+                <span class="fw-semibold">{{ log.user.name }}</span><br>
+                <span class="text-muted small">{{ log.user.email }} ({{ log.user.role }})</span>
+              {% else %}
+                <span class="text-muted">System / Anonymous</span>
+              {% endif %}
+            </td>
+            <td><code>{{ log.ip_address or '127.0.0.1' }}</code></td>
+            <td class="text-wrap" style="max-width: 400px;">
+              {{ log.details or 'No additional details recorded.' }}
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr>
+            <td colspan="6" class="text-center py-4 text-muted">
+              No audit records logged yet.
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

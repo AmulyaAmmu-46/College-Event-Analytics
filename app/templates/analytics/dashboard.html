@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+{% block title %}Advanced Event Analytics Dashboard - College Event Analytics{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+  <div>
+    <span class="eyebrow">DATA INTELLIGENCE</span>
+    <h1 class="h2">Advanced Event Analytics & Popularity Scoring</h1>
+    <p>Multi-dimensional analytics comparing event registrations, 9-department participation, attendance rates, and popularity rankings.</p>
+  </div>
+  <div class="d-flex gap-2">
+    <button class="btn btn-outline-info" data-bs-toggle="modal" data-bs-target="#formulaModal">
+      <i class="bi bi-calculator me-1"></i> Popularity Formula
+    </button>
+    <a class="btn btn-outline-primary" href="{{ url_for('reports.index') }}">
+      <i class="bi bi-download me-1"></i> Export Reports
+    </a>
+  </div>
+</div>
+
+<!-- Dynamic Filter Panel Required by Prompt Section 6 -->
+<form class="filter-panel row g-2 align-items-end mb-4 border shadow-sm rounded-4 bg-white" id="dashboard-filters" data-endpoint="{{ url_for('analytics.data') }}">
+  <div class="col-sm-6 col-lg-2">
+    <label class="form-label" for="start">From Date</label>
+    <input class="form-control" type="date" id="start" name="start">
+  </div>
+  <div class="col-sm-6 col-lg-2">
+    <label class="form-label" for="end">To Date</label>
+    <input class="form-control" type="date" id="end" name="end">
+  </div>
+  <div class="col-sm-6 col-lg-2">
+    <label class="form-label" for="department">Department</label>
+    <select class="form-select" id="department" name="department">
+      <option value="">All 9 Departments</option>
+      {% for department in departments %}
+      <option value="{{ department.id }}">{{ department.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-sm-6 col-lg-2">
+    <label class="form-label" for="category">Category</label>
+    <select class="form-select" id="category" name="category">
+      <option value="">All Categories</option>
+      {% for category in categories %}
+      <option value="{{ category }}">{{ category }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-sm-6 col-lg-2">
+    <label class="form-label" for="academic_year">Academic Year</label>
+    <select class="form-select" id="academic_year" name="academic_year">
+      <option value="">All Years</option>
+      {% for year in academic_years %}
+      <option value="{{ year }}">{{ year }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-sm-6 col-lg-1">
+    <label class="form-label" for="status">Status</label>
+    <select class="form-select" id="status" name="status">
+      <option value="">All</option>
+      {% for status in statuses %}
+      <option value="{{ status }}">{{ status }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-sm-6 col-lg-1">
+    <button class="btn btn-primary w-100 fw-bold" type="submit" title="Filter Charts"><i class="bi bi-funnel-fill"></i></button>
+  </div>
+</form>
+
+<!-- Live KPI Summary Cards -->
+<div class="row g-3 mb-4" id="summary-cards">
+  {% for key, title, icon, color in [
+    ('total_events', 'Total Events', 'bi-calendar-event', 'blue'),
+    ('upcoming_events', 'Upcoming Events', 'bi-calendar2-plus', 'green'),
+    ('total_registrations', 'Registrations', 'bi-person-plus', 'orange'),
+    ('total_attendance', 'Total Attendees', 'bi-person-check', 'green'),
+    ('average_attendance_rate', 'Avg Attendance Rate', 'bi-graph-up', 'blue'),
+    ('average_feedback_rating', 'Avg Satisfaction', 'bi-star-fill text-warning', 'purple')
+  ] %}
+  <div class="col-6 col-xl-2 col-md-4">
+    <div class="stat-card stat-{{ color }}">
+      <div class="stat-icon {{ color }}"><i class="bi {{ icon }}"></i></div>
+      <span>{{ title }}</span>
+      <strong id="card-{{ key }}">—</strong>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<div id="chart-loading" class="loading-note my-2"><span class="spinner-border spinner-border-sm text-primary"></span> Loading analytics data from live database...</div>
+
+<!-- The 8 Core Visualizations Required by Prompt Section 6 -->
+<div class="row g-4 dashboard-charts mb-4">
+  <!-- Chart 1: Event-wise Registration -->
+  <div class="col-lg-8">
+    <div class="chart-card">
+      <h2><i class="bi bi-bar-chart me-2 text-primary"></i> Chart 1: Event-wise Registration</h2>
+      <p class="chart-subtitle">Total registered students for each scheduled college event.</p>
+      <canvas id="registrationsChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Chart 5: Event Category Popularity -->
+  <div class="col-lg-4">
+    <div class="chart-card">
+      <h2><i class="bi bi-pie-chart me-2 text-primary"></i> Chart 5: Category Distribution</h2>
+      <p class="chart-subtitle">Comparison across technical, cultural, sports, and workshops.</p>
+      <canvas id="categoryChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Chart 2: Department-wise Participation -->
+  <div class="col-lg-8">
+    <div class="chart-card">
+      <h2><i class="bi bi-building me-2 text-primary"></i> Chart 2: Department-wise Participation</h2>
+      <p class="chart-subtitle">Student participation across all 9 engineering and technology departments.</p>
+      <canvas id="departmentChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Chart 4: Attendance Distribution -->
+  <div class="col-lg-4">
+    <div class="chart-card">
+      <h2><i class="bi bi-pie-chart-fill me-2 text-primary"></i> Chart 4: Attendance Status</h2>
+      <p class="chart-subtitle">Comparison of Present, Absent, and Excused participants.</p>
+      <canvas id="attendanceChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Chart 3: Monthly Registration Trends -->
+  <div class="col-lg-6">
+    <div class="chart-card">
+      <h2><i class="bi bi-graph-up-arrow me-2 text-primary"></i> Chart 3: Monthly Registration Trends</h2>
+      <p class="chart-subtitle">Timeline showing student registration momentum over months.</p>
+      <canvas id="monthlyChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Chart 6: Event Feedback Analysis -->
+  <div class="col-lg-6">
+    <div class="chart-card">
+      <h2><i class="bi bi-star-half me-2 text-primary"></i> Chart 6: Event Feedback Analysis</h2>
+      <p class="chart-subtitle">Average student satisfaction ratings across completed events (out of 5.0).</p>
+      <canvas id="ratingsChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Chart 7: Top Five Popular Events -->
+  <div class="col-lg-6">
+    <div class="chart-card">
+      <h2><i class="bi bi-trophy-fill me-2 text-warning"></i> Chart 7: Top Five Popular Events</h2>
+      <p class="chart-subtitle">Events ranked by multi-metric algorithm (Fill Rate + Attendance + Feedback).</p>
+      <canvas id="topChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Chart 8: Registration vs Actual Attendance -->
+  <div class="col-lg-6">
+    <div class="chart-card">
+      <h2><i class="bi bi-people-fill me-2 text-primary"></i> Chart 8: Registered vs Actual Attendance</h2>
+      <p class="chart-subtitle">Direct comparison between student enrollment and actual hall attendance.</p>
+      <canvas id="comparisonChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<!-- Event Popularity Score Breakdown Table (Section 7) -->
+<div class="table-panel border shadow-sm mb-4">
+  <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light">
+    <div>
+      <span class="fw-bold text-dark"><i class="bi bi-award-fill text-warning me-2"></i> Event Popularity Rankings & Calculation Metrics</span>
+      <span class="text-muted small ms-2">Transparent scoring based on 40% fill, 40% attendance, and 20% feedback.</span>
+    </div>
+    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#formulaModal">
+      View Formula
+    </button>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0" id="topEventsTable">
+      <thead>
+        <tr>
+          <th>Rank</th>
+          <th>Event Title</th>
+          <th>Valid Registrations</th>
+          <th>Capacity Fill Rate</th>
+          <th>Attendees</th>
+          <th>Attendance Rate</th>
+          <th>Avg Rating</th>
+          <th>Popularity Score</th>
+        </tr>
+      </thead>
+      <tbody id="topEventsTableBody">
+        <tr><td colspan="8" class="text-center text-muted py-3">Loading rankings...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Formula Modal (Prompt Section 7) -->
+<div class="modal fade" id="formulaModal" tabindex="-1" aria-labelledby="formulaModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" id="formulaModalLabel"><i class="bi bi-calculator text-primary me-2"></i> Event Popularity Calculation Formula</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="p-3 bg-light rounded-3 mb-3 border">
+          <h6 class="fw-bold text-dark mb-2">Mathematical Formulation</h6>
+          <div class="p-2 bg-white rounded border font-monospace text-primary fw-bold text-center fs-6">
+            Popularity Score = (40% × Fill Rate) + (40% × Attendance Rate) + (20% × Normalized Feedback)
+          </div>
+        </div>
+
+        <div class="row g-3">
+          <div class="col-md-4">
+            <div class="p-3 border rounded-3 h-100">
+              <span class="badge bg-primary mb-2">Weight: 40%</span>
+              <h6 class="fw-bold">Registration Fill Rate</h6>
+              <p class="small text-muted mb-0"><code>(Valid Registrations / Event Capacity) × 100</code>. Clamped to a max of 100%. Safely evaluated as 0 when capacity is not configured.</p>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="p-3 border rounded-3 h-100">
+              <span class="badge bg-success mb-2">Weight: 40%</span>
+              <h6 class="fw-bold">Attendance Rate</h6>
+              <p class="small text-muted mb-0"><code>(Present Students / Eligible Active Registrations) × 100</code>. Cancelled registrations are excluded. Excused remain in denominator.</p>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="p-3 border rounded-3 h-100">
+              <span class="badge bg-warning text-dark mb-2">Weight: 20%</span>
+              <h6 class="fw-bold">Normalized Feedback</h6>
+              <p class="small text-muted mb-0"><code>(Average Rating / 5.0) × 100</code>. Events with no feedback yet are handled safely without distorting other metrics.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% endblock %}

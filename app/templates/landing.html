@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}Welcome to College Event Analytics System{% endblock %}
+
+{% block content %}
+<section class="hero-panel mb-5">
+  <div class="row align-items-center g-4">
+    <div class="col-lg-8">
+      <span class="hero-badge"><i class="bi bi-mortarboard-fill me-1"></i> Multi-Department Academic Platform</span>
+      <h1 class="display-5 fw-bold mt-2">College Event Analytics System</h1>
+      <p class="lead text-light opacity-75 mt-3 mb-4" style="max-width: 680px;">
+        A smart, web-based platform for event scheduling, student participation tracking, real-time attendance management, and multi-department performance analytics.
+      </p>
+      <div class="d-flex flex-wrap gap-3">
+        <a class="btn btn-primary btn-lg px-4" href="{{ url_for('events.listing') }}">
+          <i class="bi bi-compass me-2"></i> Explore Events
+        </a>
+        <a class="btn btn-outline-light btn-lg px-4" href="{{ url_for('auth.login') }}">
+          <i class="bi bi-box-arrow-in-right me-2"></i> Student Portal
+        </a>
+        <a class="btn btn-outline-warning btn-lg px-4" href="{{ url_for('auth.admin_login') }}">
+          <i class="bi bi-shield-lock me-2"></i> Admin Portal
+        </a>
+      </div>
+    </div>
+    <div class="col-lg-4 text-center d-none d-lg-block">
+      <div class="p-4 rounded-4 bg-white bg-opacity-10 backdrop-blur border border-white border-opacity-10 text-white">
+        <i class="bi bi-pie-chart-fill" style="font-size: 5rem; color: #818cf8;"></i>
+        <h4 class="fw-bold mt-3">Smart Analytics</h4>
+        <p class="small text-white-50 mb-0">Track engagement, registration fill rates, and feedback across 9 academic departments.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Stats Overview Banner -->
+<div class="row g-3 mb-5">
+  <div class="col-md-4">
+    <div class="stat-card stat-blue">
+      <span>Total Scheduled Events</span>
+      <strong>{{ stats.total_events if stats else 11 }}</strong>
+      <div class="stat-icon blue"><i class="bi bi-calendar-check"></i></div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card stat-purple">
+      <span>Participating Departments</span>
+      <strong>{{ stats.total_departments if stats else 9 }} <small class="text-muted fs-6">Engineering Depts</small></strong>
+      <div class="stat-icon purple"><i class="bi bi-building"></i></div>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="stat-card stat-green">
+      <span>Active Student Base</span>
+      <strong>{{ stats.total_students if stats else 12 }} <small class="text-muted fs-6">Registered Students</small></strong>
+      <div class="stat-icon green"><i class="bi bi-people"></i></div>
+    </div>
+  </div>
+</div>
+
+<!-- Upcoming Event Highlights -->
+<div class="mb-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <span class="eyebrow">CAMPUS HIGHLIGHTS</span>
+      <h2 class="fw-bold text-dark mb-0">Upcoming Featured Events</h2>
+    </div>
+    <a class="btn btn-outline-primary" href="{{ url_for('events.listing') }}">View All Events <i class="bi bi-arrow-right ms-1"></i></a>
+  </div>
+
+  <div class="row g-4">
+    {% if featured_events %}
+      {% for event in featured_events %}
+      <div class="col-lg-4 col-md-6">
+        <div class="event-card">
+          <div>
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <span class="badge bg-primary-subtle text-primary fw-bold">{{ event.category }}</span>
+              <span class="badge bg-secondary-subtle text-secondary">{{ event.event_type }}</span>
+            </div>
+            <h5 class="fw-bold text-dark mt-2 mb-2">{{ event.title }}</h5>
+            <p class="text-secondary small line-clamp mb-3">{{ event.description }}</p>
+            <div class="event-meta">
+              <div><i class="bi bi-calendar3"></i> {{ event.event_date.strftime('%A, %b %d, %Y') }}</div>
+              <div><i class="bi bi-clock"></i> {{ event.start_time.strftime('%I:%M %p') }} - {{ event.end_time.strftime('%I:%M %p') }}</div>
+              <div><i class="bi bi-geo-alt"></i> {{ event.venue }}</div>
+              <div><i class="bi bi-mortarboard"></i> {{ event.departments_display }}</div>
+            </div>
+          </div>
+          <div class="pt-3 border-top d-flex justify-content-between align-items-center mt-3">
+            <span class="small text-muted">
+              <i class="bi bi-people me-1"></i>
+              {% if event.capacity %}
+                {{ event.remaining_seats }} seats left
+              {% else %}
+                Open capacity
+              {% endif %}
+            </span>
+            <a class="btn btn-sm btn-primary" href="{{ url_for('events.detail', event_id=event.id) }}">Details & Register</a>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="col-12">
+        <div class="p-4 text-center bg-white rounded-4 border">
+          <p class="text-muted mb-0">No upcoming events found. Check back soon!</p>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- System Capabilities Grid -->
+<div class="row g-4 mb-4">
+  <div class="col-md-4">
+    <div class="feature-card">
+      <i class="bi bi-calendar2-range"></i>
+      <h5>Event Scheduling & Conflict Prevention</h5>
+      <p>Organize technical, cultural, sports, and workshop events. Automatic venue and time overlap validation prevents scheduling conflicts.</p>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="feature-card">
+      <i class="bi bi-person-check-fill"></i>
+      <h5>Real-Time Attendance & Eligibility</h5>
+      <p>Single and bulk attendance marking (Present, Absent, Excused) with coordinator audit timestamps and department-level eligibility enforcement.</p>
+    </div>
+  </div>
+  <div class="col-md-4">
+    <div class="feature-card">
+      <i class="bi bi-graph-up"></i>
+      <h5>Transparent Popularity Scoring</h5>
+      <p>Real-time calculation combining Registration Fill Rate (40%), Attendance Rate (40%), and Student Feedback (20%) across all 9 departments.</p>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Department Management - College Event Analytics{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+  <div>
+    <span class="eyebrow">ACADEMIC STRUCTURE</span>
+    <h1 class="h2">Nine Academic Departments</h1>
+    <p>Manage the nine college engineering and technology departments, review student enrollment distribution, and track event engagement.</p>
+  </div>
+</div>
+
+<div class="row g-4">
+  <!-- Add New Department Form -->
+  <div class="col-lg-4">
+    <div class="section-panel shadow-sm">
+      <h5 class="fw-bold text-dark mb-3"><i class="bi bi-plus-circle text-primary me-2"></i> Add Department</h5>
+      <form method="post" action="{{ url_for('admin.departments') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="add">
+
+        <div class="mb-3">
+          <label class="form-label" for="name">Department Name <span class="text-danger">*</span></label>
+          <input class="form-control" id="name" name="name" placeholder="e.g. Data Science Engineering" required>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label" for="code">Department Code <span class="text-danger">*</span></label>
+          <input class="form-control text-uppercase" id="code" name="code" placeholder="e.g. DSE" required maxlength="20">
+          <div class="form-text">Unique uppercase identifier code.</div>
+        </div>
+
+        <button class="btn btn-primary w-100" type="submit">
+          <i class="bi bi-building-add me-1"></i> Save Department
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Departments Table -->
+  <div class="col-lg-8">
+    <div class="table-panel border shadow-sm">
+      <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light">
+        <span class="fw-bold text-dark">Active College Departments ({{ departments|length }})</span>
+        <span class="badge bg-primary">All 9 Standard Depts Active</span>
+      </div>
+
+      <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Department Name</th>
+              <th>Code</th>
+              <th>Enrolled Students</th>
+              <th>Organized Events</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in dept_stats %}
+            {% set dept = item.dept %}
+            <tr>
+              <td class="text-muted small">{{ loop.index }}</td>
+              <td>
+                <span class="fw-bold text-dark">{{ dept.name }}</span>
+              </td>
+              <td>
+                <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-6 font-monospace">{{ dept.code }}</span>
+              </td>
+              <td>
+                <span class="fw-semibold text-dark">{{ item.student_count }}</span>
+                <span class="text-muted small">students</span>
+              </td>
+              <td>
+                <span class="fw-semibold text-dark">{{ item.event_count }}</span>
+                <span class="text-muted small">events</span>
+              </td>
+              <td class="text-end">
+                <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editDeptModal{{ dept.id }}" title="Edit Department">
+                  <i class="bi bi-pencil"></i> Edit
+                </button>
+
+                <!-- Edit Department Modal -->
+                <div class="modal fade text-start" id="editDeptModal{{ dept.id }}" tabindex="-1" aria-hidden="true">
+                  <div class="modal-dialog">
+                    <div class="modal-content">
+                      <form method="post" action="{{ url_for('admin.departments') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <input type="hidden" name="action" value="edit">
+                        <input type="hidden" name="department_id" value="{{ dept.id }}">
+
+                        <div class="modal-header">
+                          <h5 class="modal-title">Edit Department: {{ dept.code }}</h5>
+                          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body">
+                          <div class="mb-3">
+                            <label class="form-label">Department Name</label>
+                            <input class="form-control" name="name" value="{{ dept.name }}" required>
+                          </div>
+                          <div class="mb-3">
+                            <label class="form-label">Department Code</label>
+                            <input class="form-control text-uppercase" name="code" value="{{ dept.code }}" required maxlength="20">
+                          </div>
+                        </div>
+                        <div class="modal-footer">
+                          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                          <button type="submit" class="btn btn-primary">Update Department</button>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </td>
+            </tr>
+            {% else %}
+              {% for dept in departments %}
+              <tr>
+                <td>{{ loop.index }}</td>
+                <td>{{ dept.name }}</td>
+                <td><span class="badge bg-light text-dark border">{{ dept.code }}</span></td>
+                <td>{{ dept.users|length }}</td>
+                <td>{{ dept.events|length }}</td>
+                <td></td>
+              </tr>
+              {% endfor %}
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

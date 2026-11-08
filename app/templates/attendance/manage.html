@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Mark Attendance · {{ event.title }}{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+  <div>
+    <span class="eyebrow">ATTENDANCE MANAGEMENT</span>
+    <h1 class="h2">{{ event.title }}</h1>
+    <p>{{ event.event_date.strftime('%A, %B %d, %Y') }} · {{ event.venue }} · {{ registrations|length }} active registrations</p>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a class="btn btn-outline-success" href="{{ url_for('attendance.export_csv', event_id=event.id) }}">
+      <i class="bi bi-file-earmark-excel me-1"></i> Export Attendance CSV
+    </a>
+    <a class="btn btn-outline-secondary" href="{{ url_for('attendance.participants', event_id=event.id) }}">
+      <i class="bi bi-people me-1"></i> Participant List
+    </a>
+    <a class="btn btn-outline-primary" href="{{ url_for('attendance.index') }}">
+      <i class="bi bi-arrow-left me-1"></i> All Events
+    </a>
+  </div>
+</div>
+
+<!-- Attendance Summary Cards Required by Prompt Section 4.5 -->
+<div class="row g-3 mb-4">
+  <div class="col-md-2 col-sm-4 col-6">
+    <div class="p-3 bg-white rounded-3 border text-center">
+      <div class="small text-muted text-uppercase fw-bold">Total Registered</div>
+      <div class="fs-3 fw-bold text-dark mt-1">{{ summary.total }}</div>
+    </div>
+  </div>
+  <div class="col-md-2 col-sm-4 col-6">
+    <div class="p-3 bg-white rounded-3 border text-center border-success">
+      <div class="small text-success text-uppercase fw-bold">Present</div>
+      <div class="fs-3 fw-bold text-success mt-1">{{ summary.present }}</div>
+    </div>
+  </div>
+  <div class="col-md-2 col-sm-4 col-6">
+    <div class="p-3 bg-white rounded-3 border text-center border-danger">
+      <div class="small text-danger text-uppercase fw-bold">Absent</div>
+      <div class="fs-3 fw-bold text-danger mt-1">{{ summary.absent }}</div>
+    </div>
+  </div>
+  <div class="col-md-2 col-sm-4 col-6">
+    <div class="p-3 bg-white rounded-3 border text-center border-warning">
+      <div class="small text-warning-emphasis text-uppercase fw-bold">Excused</div>
+      <div class="fs-3 fw-bold text-warning-emphasis mt-1">{{ summary.excused }}</div>
+    </div>
+  </div>
+  <div class="col-md-4 col-sm-8 col-12">
+    <div class="p-3 bg-white rounded-3 border">
+      <div class="d-flex justify-content-between align-items-center mb-1">
+        <span class="small text-muted text-uppercase fw-bold">Attendance Rate</span>
+        <span class="fs-4 fw-bold text-primary">{{ summary.rate }}%</span>
+      </div>
+      <div class="progress" style="height: 8px;">
+        <div class="progress-bar bg-primary" role="progressbar" style="width: {{ summary.rate }}%"></div>
+      </div>
+      <div class="small text-muted mt-1 fst-italic">Formula: (Present / Active Eligible Students) × 100</div>
+    </div>
+  </div>
+</div>
+
+<!-- Bulk Actions Toolbar -->
+<div class="p-3 bg-light rounded-4 border mb-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
+  <div>
+    <span class="fw-bold text-dark"><i class="bi bi-magic me-1"></i> Bulk Attendance Operations</span>
+    <span class="text-muted small ms-2">Apply status to all {{ registrations|length }} registered students at once.</span>
+  </div>
+  <div class="d-flex gap-2">
+    <form method="post" class="d-inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="bulk_action" value="mark_all_present">
+      <button type="submit" class="btn btn-sm btn-outline-success" onclick="return confirm('Mark ALL active students as Present?')">
+        <i class="bi bi-check-all me-1"></i> Mark All Present
+      </button>
+    </form>
+    <form method="post" class="d-inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="bulk_action" value="mark_all_absent">
+      <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Mark ALL active students as Absent?')">
+        <i class="bi bi-x-circle me-1"></i> Mark All Absent
+      </button>
+    </form>
+    <form method="post" class="d-inline">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="bulk_action" value="clear">
+      <button type="submit" class="btn btn-sm btn-outline-secondary" onclick="return confirm('Clear all attendance records for this event?')">
+        <i class="bi bi-eraser me-1"></i> Clear Marks
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Attendance Form -->
+<form method="post" class="table-panel border shadow-sm">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead>
+        <tr>
+          <th>Student Name</th>
+          <th>Student USN / ID</th>
+          <th>Department</th>
+          <th>Academic Year</th>
+          <th style="width: 220px;">Attendance Status</th>
+          <th>Remarks / Notes</th>
+          <th>Audit Info</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for reg in registrations %}
+        <tr>
+          <td>
+            <span class="fw-bold text-dark">{{ reg.student.name }}</span><br>
+            <small class="text-muted">{{ reg.student.email }}</small>
+          </td>
+          <td>
+            <span class="badge bg-light text-dark border font-monospace">{{ reg.student.student_id or '—' }}</span>
+          </td>
+          <td>
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+              {{ reg.student.department.code if reg.student.department else '—' }}
+            </span>
+          </td>
+          <td class="small text-muted">{{ reg.student.academic_year or '—' }}</td>
+          <td>
+            <select class="form-select form-select-sm attendance-select fw-semibold" name="attendance_{{ reg.id }}" aria-label="Attendance for {{ reg.student.name }}">
+              <option value="">Not marked</option>
+              {% for status in statuses %}
+              <option value="{{ status }}" {% if reg.attendance and reg.attendance.status == status %}selected{% endif %}>
+                {{ status }}
+              </option>
+              {% endfor %}
+            </select>
+          </td>
+          <td>
+            <input type="text" class="form-control form-control-sm" name="notes_{{ reg.id }}" placeholder="Optional remarks..." value="{{ reg.attendance.notes if reg.attendance and reg.attendance.notes else '' }}">
+          </td>
+          <td class="small text-muted">
+            {% if reg.attendance and reg.attendance.marked_by %}
+              <i class="bi bi-person-check text-success me-1"></i>{{ reg.attendance.marked_by.name }}<br>
+              {{ reg.attendance.updated_at.strftime('%b %d, %H:%M') }}
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" class="text-center py-5 text-muted">
+            There are no active registrations for this event.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="p-3 bg-light border-top d-flex justify-content-between align-items-center">
+    <span class="small text-muted">Cancelled registrations are strictly excluded from attendance rates.</span>
+    <button class="btn btn-primary px-4 fw-bold shadow-sm" type="submit">
+      <i class="bi bi-save me-1"></i> Save Attendance
+    </button>
+  </div>
+</form>
+{% endblock %}

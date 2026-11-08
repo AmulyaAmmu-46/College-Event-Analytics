@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block title %}College Event Calendar - College Event Analytics{% endblock %}
+
+{% block head %}
+<!-- FullCalendar CDN -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.css">
+<style>
+  .fc .fc-toolbar-title { font-size: 1.35rem; font-weight: 750; color: #0f172a; }
+  .fc .fc-button-primary { background-color: #4f46e5; border-color: #4f46e5; }
+  .fc .fc-button-primary:hover { background-color: #4338ca; border-color: #4338ca; }
+  .fc .fc-button-primary:disabled { background-color: #818cf8; border-color: #818cf8; }
+  .fc .fc-daygrid-event { border-radius: 6px; padding: 2px 6px; font-weight: 600; cursor: pointer; }
+  .fc-theme-standard td, .fc-theme-standard th { border-color: #e2e8f0; }
+  .fc .fc-col-header-cell-cushion { font-size: 0.85rem; font-weight: 700; color: #475569; text-transform: uppercase; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+  <div>
+    <span class="eyebrow">SCHEDULE & TIMELINE</span>
+    <h1 class="h2">College Event Calendar</h1>
+    <p>Interactive schedule view of all workshops, seminars, hackathons, and cultural fests across Month, Week, and Day.</p>
+  </div>
+  {% if current_user.is_authenticated and current_user.role in ['admin', 'coordinator'] %}
+  <a class="btn btn-primary" href="{{ url_for('events.create') }}">
+    <i class="bi bi-plus-lg me-1"></i> Schedule New Event
+  </a>
+  {% endif %}
+</div>
+
+<!-- Calendar Card -->
+<div class="card border-0 shadow-sm rounded-4 p-3 p-lg-4 bg-white mb-4">
+  <!-- Category Legend -->
+  <div class="d-flex flex-wrap gap-2 mb-3 pb-3 border-bottom small align-items-center">
+    <span class="fw-bold text-dark me-2">Legend:</span>
+    <span class="badge" style="background-color: #4f46e5;">Technical</span>
+    <span class="badge" style="background-color: #ec4899;">Cultural</span>
+    <span class="badge" style="background-color: #f97316;">Sports</span>
+    <span class="badge" style="background-color: #06b6d4;">Workshops</span>
+    <span class="badge" style="background-color: #8b5cf6;">Seminars</span>
+    <span class="badge" style="background-color: #3b82f6;">Conferences</span>
+    <span class="badge" style="background-color: #10b981;">Hackathons</span>
+    <span class="badge" style="background-color: #eab308; color: #000;">Competitions</span>
+    <span class="badge" style="background-color: #14b8a6;">Awareness</span>
+  </div>
+
+  <div id="calendar"></div>
+</div>
+
+<!-- Quick Event Modal -->
+<div class="modal fade" id="eventModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold" id="modalEventTitle">Event Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2"><span class="badge bg-primary" id="modalCategory">Category</span> <span class="badge bg-secondary" id="modalStatus">Status</span></div>
+        <p class="mb-1"><i class="bi bi-clock me-2 text-primary"></i> <span id="modalTime">Time</span></p>
+        <p class="mb-1"><i class="bi bi-geo-alt me-2 text-primary"></i> <span id="modalVenue">Venue</span></p>
+        <p class="mb-0"><i class="bi bi-building me-2 text-primary"></i> <span id="modalDept">Departments</span></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        <a href="#" id="modalEventLink" class="btn btn-primary">Open Event Page</a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('calendar');
+    var eventModal = new bootstrap.Modal(document.getElementById('eventModal'));
+
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
+      headerToolbar: {
+        left: 'prev,next today',
+        center: 'title',
+        right: 'dayGridMonth,timeGridWeek,timeGridDay'
+      },
+      events: '{{ url_for("events.calendar_data") }}',
+      eventClick: function(info) {
+        info.jsEvent.preventDefault();
+        document.getElementById('modalEventTitle').innerText = info.event.title;
+        document.getElementById('modalCategory').innerText = info.event.extendedProps.category || 'General';
+        document.getElementById('modalStatus').innerText = info.event.extendedProps.status || 'Upcoming';
+        document.getElementById('modalVenue').innerText = info.event.extendedProps.venue || 'TBA';
+        document.getElementById('modalDept').innerText = info.event.extendedProps.departments || 'College-wide';
+        
+        var startStr = info.event.start ? info.event.start.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
+        var endStr = info.event.end ? info.event.end.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
+        document.getElementById('modalTime').innerText = startStr + (endStr ? ' - ' + endStr : '');
+        
+        document.getElementById('modalEventLink').href = info.event.url;
+        eventModal.show();
+      }
+    });
+
+    calendar.render();
+  });
+</script>
+{% endblock %}
