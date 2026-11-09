@@ -8,6 +8,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.analytics.services import feedback_themes
 from app.extensions import db
+from app.export_utils import excel_response
 from app.models import Department, Event, Feedback, Registration
 from app.notifications.services import create_notification, log_action
 from app.security import can_manage_event, roles_required
@@ -149,6 +150,28 @@ def summary(event_id):
 @feedback_bp.route("/export.csv")
 @roles_required("admin", "coordinator")
 def export_csv():
+    entries = feedback_export_query().all()
+    rows = feedback_export_rows(entries)
+    output = StringIO()
+    csv.writer(output).writerows(rows)
+
+    stamp = datetime.utcnow().strftime("%Y%m%d_%H%M")
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=feedback_report_{stamp}.csv"},
+    )
+
+
+@feedback_bp.route("/export.xlsx")
+@roles_required("admin", "coordinator")
+def export_xlsx():
+    entries = feedback_export_query().all()
+    stamp = datetime.utcnow().strftime("%Y%m%d_%H%M")
+    return excel_response(feedback_export_rows(entries), f"feedback_report_{stamp}.xlsx", "Feedback")
+
+
+def feedback_export_query():
     query = Feedback.query.join(Registration).join(Event)
     if current_user.role == "coordinator":
         query = query.filter(Event.coordinator_id == current_user.id)
@@ -157,11 +180,11 @@ def export_csv():
     if event_id:
         query = query.filter(Registration.event_id == event_id)
 
-    entries = query.order_by(Feedback.submitted_at.desc()).all()
+    return query.order_by(Feedback.submitted_at.desc())
 
-    output = StringIO()
-    writer = csv.writer(output)
-    writer.writerow([
+
+def feedback_export_rows(entries):
+    rows = [[
         "Event Title",
         "Event Date",
         "Student Department",
@@ -171,9 +194,9 @@ def export_csv():
         "Venue & Facilities",
         "Written Comments",
         "Submitted Date",
-    ])
+    ]]
     for f in entries:
-        writer.writerow([
+        rows.append([
             f.registration.event.title,
             f.registration.event.event_date.isoformat(),
             f.registration.student.department.name if f.registration.student.department else "Unassigned",
@@ -184,10 +207,4 @@ def export_csv():
             f.comments or "",
             f.submitted_at.strftime("%Y-%m-%d %H:%M"),
         ])
-
-    stamp = datetime.utcnow().strftime("%Y%m%d_%H%M")
-    return Response(
-        output.getvalue(),
-        mimetype="text/csv",
-        headers={"Content-Disposition": f"attachment; filename=feedback_report_{stamp}.csv"},
-    )
+    return rows

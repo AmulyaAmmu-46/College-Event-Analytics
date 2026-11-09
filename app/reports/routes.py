@@ -7,6 +7,7 @@ from flask_login import current_user
 
 from app.analytics.services import event_metrics, filtered_events
 from app.events.routes import EVENT_CATEGORIES, EVENT_STATUSES
+from app.export_utils import excel_response
 from app.models import Department, Event, Feedback, Registration
 from app.notifications.services import log_action
 from app.security import roles_required
@@ -32,19 +33,9 @@ def index():
     )
 
 
-@reports_bp.route("/<report_type>.csv")
-@roles_required("admin", "coordinator")
-def export(report_type):
-    try:
-        events = report_events()
-    except ValueError as error:
-        return str(error), 400
-
-    output = StringIO()
-    writer = csv.writer(output)
-
+def report_rows(report_type, events):
     if report_type == "registrations":
-        writer.writerow([
+        rows = [[
             "Event",
             "Event Date",
             "Category",
@@ -56,10 +47,10 @@ def export(report_type):
             "Academic Year",
             "Registration Status",
             "Registered At",
-        ])
+        ]]
         for event in events:
             for registration in event.registrations:
-                writer.writerow([
+                rows.append([
                     event.title,
                     event.event_date.isoformat(),
                     event.category,
@@ -72,9 +63,10 @@ def export(report_type):
                     registration.status,
                     registration.registered_at.isoformat(),
                 ])
+        return rows
 
-    elif report_type == "attendance":
-        writer.writerow([
+    if report_type == "attendance":
+        rows = [[
             "Event",
             "Event Date",
             "Student Name",
@@ -84,11 +76,11 @@ def export(report_type):
             "Attendance Status",
             "Notes",
             "Updated At",
-        ])
+        ]]
         for event in events:
             for registration in event.registrations:
                 attendance = registration.attendance
-                writer.writerow([
+                rows.append([
                     event.title,
                     event.event_date.isoformat(),
                     registration.student.name,
@@ -99,9 +91,10 @@ def export(report_type):
                     attendance.notes if attendance and attendance.notes else "",
                     attendance.updated_at.isoformat() if attendance else "",
                 ])
+        return rows
 
-    elif report_type == "feedback":
-        writer.writerow([
+    if report_type == "feedback":
+        rows = [[
             "Event",
             "Event Date",
             "Student Department",
@@ -111,12 +104,12 @@ def export(report_type):
             "Venue Rating",
             "Comments",
             "Submitted At",
-        ])
+        ]]
         for event in events:
             for registration in event.registrations:
                 feedback = registration.feedback
                 if feedback:
-                    writer.writerow([
+                    rows.append([
                         event.title,
                         event.event_date.isoformat(),
                         registration.student.department.name if registration.student.department else "Unassigned",
@@ -127,9 +120,10 @@ def export(report_type):
                         feedback.comments or "",
                         feedback.submitted_at.isoformat(),
                     ])
+        return rows
 
-    elif report_type == "departments":
-        writer.writerow(["Department", "Event", "Active Registrations", "Attended"])
+    if report_type == "departments":
+        rows = [["Department", "Event", "Active Registrations", "Attended"]]
         totals = {}
         for event in events:
             for registration in event.registrations:
@@ -140,10 +134,11 @@ def export(report_type):
                     totals[key][0] += 1
                     totals[key][1] += int(bool(registration.attendance and registration.attendance.status == "Present"))
         for (department, title), (registered, attended) in sorted(totals.items()):
-            writer.writerow([department, title, registered, attended])
+            rows.append([department, title, registered, attended])
+        return rows
 
-    elif report_type == "popularity":
-        writer.writerow([
+    if report_type == "popularity":
+        rows = [[
             "Event",
             "Valid Registrations",
             "Attendees",
@@ -151,10 +146,10 @@ def export(report_type):
             "Attendance Rate (%)",
             "Average Feedback",
             "Popularity Score",
-        ])
+        ]]
         for event in sorted(events, key=lambda row: event_metrics(row)["popularity_score"], reverse=True):
             metric = event_metrics(event)
-            writer.writerow([
+            rows.append([
                 event.title,
                 metric["registrations"],
                 metric["attended"],
@@ -163,19 +158,20 @@ def export(report_type):
                 metric["average_rating"] if metric["average_rating"] is not None else "N/A",
                 metric["popularity_score"],
             ])
+        return rows
 
-    elif report_type == "monthly":
-        writer.writerow([
+    if report_type == "monthly":
+        rows = [[
             "Month",
             "Event",
             "Registrations",
             "Attendees",
             "Attendance Rate (%)",
             "Average Feedback",
-        ])
+        ]]
         for event in events:
             metric = event_metrics(event)
-            writer.writerow([
+            rows.append([
                 event.event_date.strftime("%Y-%m"),
                 event.title,
                 metric["registrations"],
@@ -183,8 +179,32 @@ def export(report_type):
                 metric["attendance_rate"],
                 metric["average_rating"] if metric["average_rating"] is not None else "N/A",
             ])
-    else:
-        return "Unknown report type.", 404
+        return rows
+
+    return None
+
+
+def get_report_rows(report_type):
+    try:
+        events = report_events()
+    except ValueError as error:
+        return None, (str(error), 400)
+
+    rows = report_rows(report_type, events)
+    if rows is None:
+        return None, ("Unknown report type.", 404)
+    return rows, None
+
+
+@reports_bp.route("/<report_type>.csv")
+@roles_required("admin", "coordinator")
+def export(report_type):
+    rows, error_response = get_report_rows(report_type)
+    if error_response:
+        return error_response
+
+    output = StringIO()
+    csv.writer(output).writerows(rows)
 
     log_action("EXPORT_REPORT_CSV", details=f"Downloaded CSV report: {report_type}")
     stamp = datetime.utcnow().strftime("%Y%m%d")
@@ -193,3 +213,15 @@ def export(report_type):
         mimetype="text/csv",
         headers={"Content-Disposition": f"attachment; filename={report_type}-{stamp}.csv"},
     )
+
+
+@reports_bp.route("/<report_type>.xlsx")
+@roles_required("admin", "coordinator")
+def export_xlsx(report_type):
+    rows, error_response = get_report_rows(report_type)
+    if error_response:
+        return error_response
+
+    log_action("EXPORT_REPORT_XLSX", details=f"Downloaded Excel report: {report_type}")
+    stamp = datetime.utcnow().strftime("%Y%m%d")
+    return excel_response(rows, f"{report_type}-{stamp}.xlsx", report_type.title())

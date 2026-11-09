@@ -1,6 +1,8 @@
 from datetime import date, datetime, time, timedelta
+from io import BytesIO
 
 import pytest
+from openpyxl import load_workbook
 from app.analytics.services import event_metrics
 from app.extensions import db
 from app.models import Attendance, Department, Event, Feedback, Notification, Registration, User
@@ -184,7 +186,7 @@ def test_in_app_notifications_lifecycle(client, app, login_as):
         assert db.session.get(Notification, notif_id).is_read is True
 
 
-def test_admin_portal_views_and_csv_exports(client, login_as):
+def test_admin_portal_views_and_csv_exports(app, client, login_as):
     login_as(client, "admin@test.local")
 
     # Admin Portal pages render with 200
@@ -206,3 +208,18 @@ def test_admin_portal_views_and_csv_exports(client, login_as):
     fb_csv = client.get("/feedback/export.csv")
     assert fb_csv.status_code == 200
     assert fb_csv.mimetype == "text/csv"
+
+    with app.app_context():
+        event_id = Event.query.first().id
+    for path in (
+        "/admin/registrations/export.xlsx",
+        "/feedback/export.xlsx",
+        f"/attendance/events/{event_id}/export.xlsx",
+    ):
+        response = client.get(path)
+        assert response.status_code == 200
+        assert response.mimetype == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        worksheet = load_workbook(BytesIO(response.data)).active
+        assert worksheet.max_row >= 1
+        assert all(cell.value for cell in worksheet[1])
+        assert worksheet.freeze_panes == "A2"

@@ -63,7 +63,7 @@
                 <a href="{{ url_for('attendance.manage', event_id=ev.id) }}" class="btn btn-primary" title="Mark Attendance">
                   <i class="bi bi-check2-square me-1"></i> Mark
                 </a>
-                <a href="{{ url_for('attendance.export_csv', event_id=ev.id) }}" class="btn btn-outline-success" title="Download CSV">
+                <a href="{{ url_for('attendance.export_xlsx', event_id=ev.id) }}" class="btn btn-outline-success" title="Download Excel">
                   <i class="bi bi-download"></i>
                 </a>
                 <a href="{{ url_for('attendance.participants', event_id=ev.id) }}" class="btn btn-outline-secondary" title="Participants">

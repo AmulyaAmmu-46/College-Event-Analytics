@@ -9,8 +9,8 @@
     <p>Comprehensive register of all event enrollments, department distribution, and attendance verification.</p>
   </div>
   <div class="d-flex flex-wrap gap-2">
-    <a class="btn btn-outline-success" href="{{ url_for('admin.export_registrations_csv', event_id=selected_event, department_id=selected_dept) }}">
-      <i class="bi bi-file-earmark-excel me-1"></i> Export to CSV
+    <a class="btn btn-outline-success" href="{{ url_for('admin.export_registrations_xlsx', event_id=selected_event, department_id=selected_dept) }}">
+      <i class="bi bi-file-earmark-excel me-1"></i> Export to Excel
     </a>
   </div>
 </div>

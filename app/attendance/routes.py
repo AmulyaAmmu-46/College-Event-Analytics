@@ -7,6 +7,7 @@ from flask_login import current_user
 from sqlalchemy.exc import IntegrityError
 
 from app.extensions import db
+from app.export_utils import excel_response
 from app.models import Attendance, Event, Registration
 from app.notifications.services import create_notification, log_action
 from app.security import can_manage_event, require_event_access, roles_required
@@ -134,9 +135,34 @@ def export_csv(event_id):
     require_event_access(event)
     registrations = Registration.query.filter_by(event_id=event.id, status="Active").all()
 
+    rows = attendance_export_rows(event, registrations)
     output = StringIO()
-    writer = csv.writer(output)
-    writer.writerow([
+    csv.writer(output).writerows(rows)
+
+    stamp = datetime.utcnow().strftime("%Y%m%d_%H%M")
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=attendance_event_{event.id}_{stamp}.csv"},
+    )
+
+
+@attendance_bp.route("/events/<int:event_id>/export.xlsx")
+@roles_required("admin", "coordinator")
+def export_xlsx(event_id):
+    event = db.get_or_404(Event, event_id)
+    require_event_access(event)
+    registrations = Registration.query.filter_by(event_id=event.id, status="Active").all()
+    stamp = datetime.utcnow().strftime("%Y%m%d_%H%M")
+    return excel_response(
+        attendance_export_rows(event, registrations),
+        f"attendance_event_{event.id}_{stamp}.xlsx",
+        "Attendance",
+    )
+
+
+def attendance_export_rows(event, registrations):
+    rows = [[
         "Event Title",
         "Event Date",
         "Student Name",
@@ -147,10 +173,10 @@ def export_csv(event_id):
         "Notes",
         "Marked By",
         "Last Updated At",
-    ])
+    ]]
     for reg in registrations:
         att = reg.attendance
-        writer.writerow([
+        rows.append([
             event.title,
             event.event_date.isoformat(),
             reg.student.name,
@@ -162,13 +188,7 @@ def export_csv(event_id):
             att.marked_by.name if att and att.marked_by else "System",
             att.updated_at.strftime("%Y-%m-%d %H:%M") if att else "",
         ])
-
-    stamp = datetime.utcnow().strftime("%Y%m%d_%H%M")
-    return Response(
-        output.getvalue(),
-        mimetype="text/csv",
-        headers={"Content-Disposition": f"attachment; filename=attendance_event_{event.id}_{stamp}.csv"},
-    )
+    return rows
 
 
 @attendance_bp.route("/events/<int:event_id>/participants")

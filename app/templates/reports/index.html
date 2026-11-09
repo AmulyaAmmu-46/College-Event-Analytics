@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Reports{% endblock %}
 {% block content %}
-<div class="page-heading"><div><span class="eyebrow">EXPORT CENTER</span><h1>Reports & exports</h1><p>Download filtered event performance data in CSV format.</p></div></div>
+<div class="page-heading"><div><span class="eyebrow">EXPORT CENTER</span><h1>Reports & exports</h1><p>Download filtered event performance data as formatted Excel spreadsheets.</p></div></div>
 <form class="filter-panel row g-2 align-items-end mb-4" id="report-filters">
   <div class="col-sm-6 col-lg-3"><label class="form-label" for="start">From date</label><input class="form-control" type="date" name="start" id="start"></div>
   <div class="col-sm-6 col-lg-3"><label class="form-label" for="end">To date</label><input class="form-control" type="date" name="end" id="end"></div>
@@ -19,7 +19,7 @@
 ('popularity','Popularity rankings','Transparent component metrics and the weighted popularity score.','bi-trophy'),
 ('monthly','Monthly performance','Monthly registrations, attendees, attendance rate, and average rating.','bi-calendar3')
 ] %}
-<div class="col-md-6 col-xl-4"><div class="report-card"><i class="bi {{ icon }}"></i><h2>{{ title }}</h2><p>{{ description }}</p><a class="btn btn-sm btn-outline-primary report-link" data-report="{{ slug }}" href="{{ url_for('reports.export', report_type=slug) }}">Download CSV <i class="bi bi-download ms-1"></i></a></div></div>
+<div class="col-md-6 col-xl-4"><div class="report-card"><i class="bi {{ icon }}"></i><h2>{{ title }}</h2><p>{{ description }}</p><a class="btn btn-sm btn-outline-primary report-link" data-report="{{ slug }}" href="{{ url_for('reports.export_xlsx', report_type=slug) }}">Download Excel <i class="bi bi-download ms-1"></i></a></div></div>
 {% endfor %}
 </div>
 {% endblock %}

@@ -14,13 +14,13 @@ The system features two completely separated and role-governed portals:
 - **Admin Analytics Dashboard**: 8 live summary KPI cards, department participation progress, recent registrations, and quick action shortcuts.
 - **Event Scheduling & Management**: Full form with 10 event categories, 3 event types (Offline, Online, Hybrid), venue conflict detection, capacity limits, multi-department assignment, and college-wide event support.
 - **Interactive Event Calendar**: Built-in FullCalendar providing Day, Week, and Month views of all scheduled campus events.
-- **Registered Student Management**: Dedicated register with multi-criteria filtering by event, department, academic year, search by USN, cancellation with audit logs, and CSV export.
-- **Attendance Management Module**: Mark individual students as *Present*, *Absent*, or *Excused*; bulk attendance marking tools; audit timestamps of the marking coordinator; live attendance rate calculations; and CSV attendance sheet exports.
+- **Registered Student Management**: Dedicated register with multi-criteria filtering by event, department, academic year, search by USN, cancellation with audit logs, and formatted Excel export.
+- **Attendance Management Module**: Mark individual students as *Present*, *Absent*, or *Excused*; bulk attendance marking tools; audit timestamps of the marking coordinator; live attendance rate calculations; and formatted Excel attendance sheet exports.
 - **Department Administration**: Native support and management for all 9 academic engineering/technology departments.
 - **Student Account Management**: Browse student profiles, filter by department, inspect registration history, and activate/deactivate accounts.
 - **Feedback Management & Analysis**: View satisfaction, organization, content, and venue ratings; rating distributions (1–5 stars); and algorithmic keyword sentiment themes.
 - **Analytics & Popularity Scoring**: 8 interactive Chart.js visualizations backed by real database records with dynamic filtering and transparent event popularity score breakdowns.
-- **Report Export Center**: Downloadable CSV reports across 6 dimensions.
+- **Report Export Center**: Formatted Excel downloads and CSV reports across 6 dimensions.
 - **In-App Notification Center & Audit Logs**: Real-time notifications and immutable audit trail recording administrative actions.
 
 ### 2. Student Portal (`/auth/login` & `/students/dashboard`)
@@ -164,12 +164,12 @@ College Event Analytics/
 │   ├── security.py                # RBAC decorators (@roles_required, can_manage_event)
 │   ├── admin/                     # Admin Portal routes & views
 │   ├── analytics/                 # Chart.js analytics engine & popularity services
-│   ├── attendance/                # Attendance tracking, bulk marking & CSV sheets
+│   ├── attendance/                # Attendance tracking, bulk marking & Excel/CSV sheets
 │   ├── auth/                      # Dedicated Admin Login, Student Login & Registration
 │   ├── events/                    # Event scheduling, conflict detection, FullCalendar
 │   ├── feedback/                  # Student feedback submission & keyword themes
 │   ├── notifications/             # In-app notification center & audit logger
-│   ├── reports/                   # 6-dimension downloadable CSV export suite
+│   ├── reports/                   # 6-dimension downloadable Excel/CSV export suite
 │   ├── students/                  # Student Portal dashboard, registrations, attendance
 │   ├── static/                    # SaaS CSS styles, dashboard.js, assets
 │   └── templates/                 # Jinja2 templates (base, landing, admin, student, etc.)

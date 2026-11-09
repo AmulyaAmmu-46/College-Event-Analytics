@@ -8,8 +8,8 @@
     <h1 class="h2">Feedback Management & Insights</h1>
     <p>Review student feedback ratings across satisfaction, organization, content quality, and venue facilities.</p>
   </div>
-  <a class="btn btn-outline-success" href="{{ url_for('feedback.export_csv', event_id=selected_event) }}">
-    <i class="bi bi-file-earmark-excel me-1"></i> Export Feedback CSV
+  <a class="btn btn-outline-success" href="{{ url_for('feedback.export_xlsx', event_id=selected_event) }}">
+    <i class="bi bi-file-earmark-excel me-1"></i> Export Feedback Excel
   </a>
 </div>
 

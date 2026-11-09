@@ -1,5 +1,7 @@
 from datetime import date, time, timedelta
+from io import BytesIO
 
+from openpyxl import load_workbook
 from app.analytics.services import event_metrics
 from app.extensions import db
 from app.models import Attendance, Event, Feedback, Registration, User
@@ -42,6 +44,15 @@ def test_dashboard_api_and_csv_exports(client, login_as):
         response = client.get(f"/reports/{report}.csv")
         assert response.status_code == 200
         assert response.mimetype == "text/csv"
+        excel_response = client.get(f"/reports/{report}.xlsx")
+        assert excel_response.status_code == 200
+        assert excel_response.mimetype == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        workbook = load_workbook(BytesIO(excel_response.data), read_only=False)
+        worksheet = workbook.active
+        assert worksheet.max_row >= 1
+        assert worksheet.freeze_panes == "A2"
+        assert worksheet.auto_filter.ref == worksheet.dimensions
+        assert all(cell.value for cell in worksheet[1])
 
 
 def test_coordinator_export_is_limited_to_assigned_events(app, client, login_as):
@@ -66,6 +77,19 @@ def test_coordinator_export_is_limited_to_assigned_events(app, client, login_as)
     response = client.get("/reports/popularity.csv")
     assert b"Test event" in response.data
     assert b"Unassigned event" not in response.data
+
+
+def test_excel_report_treats_text_as_text(app, client, login_as):
+    with app.app_context():
+        event = Event.query.first()
+        event.title = "=1+1"
+        db.session.commit()
+
+    login_as(client, "admin@test.local")
+    response = client.get("/reports/popularity.xlsx")
+    worksheet = load_workbook(BytesIO(response.data)).active
+    assert worksheet["A2"].value == "=1+1"
+    assert worksheet["A2"].data_type == "s"
 
 
 def test_empty_dashboard_returns_zero_values(app, client, login_as):

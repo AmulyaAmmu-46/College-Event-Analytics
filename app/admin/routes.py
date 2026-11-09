@@ -8,6 +8,7 @@ from sqlalchemy import or_
 
 from app.analytics.services import active_registrations, event_metrics
 from app.extensions import db
+from app.export_utils import excel_response
 from app.models import Attendance, AuditLog, Department, Event, Feedback, Registration, User
 from app.notifications.services import create_notification, log_action
 from app.security import roles_required
@@ -195,6 +196,35 @@ def cancel_student_registration(reg_id):
 @roles_required("admin", "coordinator")
 def export_registrations_csv():
     """Export filtered registered students list to CSV."""
+    records = registration_export_query().all()
+    rows = registration_export_rows(records)
+    output = StringIO()
+    csv.writer(output).writerows(rows)
+
+    log_action("EXPORT_REGISTRATIONS_CSV", details=f"Exported {len(records)} records")
+    db.session.commit()
+
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename=registered_students_{datetime.utcnow().strftime('%Y%m%d_%H%M')}.csv"},
+    )
+
+
+@admin_bp.route("/registrations/export.xlsx")
+@roles_required("admin", "coordinator")
+def export_registrations_xlsx():
+    records = registration_export_query().all()
+    log_action("EXPORT_REGISTRATIONS_XLSX", details=f"Exported {len(records)} records")
+    db.session.commit()
+    return excel_response(
+        registration_export_rows(records),
+        f"registered_students_{datetime.utcnow().strftime('%Y%m%d_%H%M')}.xlsx",
+        "Registrations",
+    )
+
+
+def registration_export_query():
     query = Registration.query.join(Event).join(User)
     if current_user.role == "coordinator":
         query = query.filter(Event.coordinator_id == current_user.id)
@@ -205,12 +235,11 @@ def export_registrations_csv():
     department_id = request.args.get("department_id", type=int)
     if department_id:
         query = query.filter(User.department_id == department_id)
+    return query.order_by(Registration.registered_at.desc())
 
-    records = query.order_by(Registration.registered_at.desc()).all()
 
-    output = StringIO()
-    writer = csv.writer(output)
-    writer.writerow([
+def registration_export_rows(records):
+    rows = [[
         "Registration ID",
         "Student Name",
         "USN / Student ID",
@@ -223,9 +252,9 @@ def export_registrations_csv():
         "Registration Date",
         "Registration Status",
         "Attendance Status",
-    ])
+    ]]
     for r in records:
-        writer.writerow([
+        rows.append([
             r.id,
             r.student.name,
             r.student.student_id or "N/A",
@@ -239,15 +268,7 @@ def export_registrations_csv():
             r.status,
             r.attendance.status if r.attendance else "Unmarked",
         ])
-
-    log_action("EXPORT_REGISTRATIONS_CSV", details=f"Exported {len(records)} records")
-    db.session.commit()
-
-    return Response(
-        output.getvalue(),
-        mimetype="text/csv",
-        headers={"Content-Disposition": f"attachment; filename=registered_students_{datetime.utcnow().strftime('%Y%m%d_%H%M')}.csv"},
-    )
+    return rows
 
 
 @admin_bp.route("/students")
